@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Portal Floral.id</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script src="config.js"></script>
+<style>
+:root{
+  color-scheme:light;
+  --side:#f7d9df; --side-2:#fcebef; --side-ink:#4a2230; --side-mute:#9a6a78; --rose-label:#a64d6a;
+  --side-hover:rgba(255,255,255,.55); --side-line:rgba(74,34,48,.14);
+  --pill:#fff; --pill-ink:#a8395c;
+  --brand:#d0688a; --ground:#fbf5f3; --surface:#fffdfc; --surface-2:#fbf0f1;
+  --ink:#2b1d22; --ink-2:#5c4850; --muted:#8f7a82; --line:#f0dfe2; --line-2:#f7ecee;
+  --ok:#2f7d4a; --ok-soft:#dff0dc; --warn:#c07a12; --warn-soft:#fbecd2; --crit:#cf4a3c; --crit-soft:#fbe0db;
+  --display:"Source Serif 4",Georgia,serif;
+  --body:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root{
+  color-scheme:dark; --side:#2a1820; --side-2:#3a2029; --side-ink:#f8e6ea; --side-mute:#c69aa8; --rose-label:#f0b3c4;
+  --side-hover:rgba(255,255,255,.07); --side-line:rgba(255,255,255,.14);
+  --pill:#f4c3cf; --pill-ink:#3a1424;
+  --brand:#ee95b0; --ground:#1a1215; --surface:#241a1e; --surface-2:#1f1619;
+  --ink:#f6ecee; --ink-2:#d5c2c8; --muted:#a08c93; --line:#3a2a30; --line-2:#2c2025;
+  --ok:#6cc08a; --ok-soft:#183a26; --warn:#e5a84b; --warn-soft:#3a2b12; --crit:#ec7466; --crit-soft:#3d1c18;}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font:14.5px/1.55 var(--body);-webkit-font-smoothing:antialiased}
+h1,h2,h3{margin:0;font-family:var(--display);line-height:1.2;text-wrap:balance}
+h1{font-size:clamp(26px,4vw,40px);font-weight:700;letter-spacing:-.015em}
+h2{font-size:21px;font-weight:700} h3{font-size:17px;font-weight:700}
+p{margin:0;max-width:72ch}
+a{color:var(--brand)}
+.mono{font-family:var(--mono)}
+
+/* ---- gerbang masuk ---- */
+#gate{min-height:100dvh;display:grid;place-items:center;padding:24px;
+  background:linear-gradient(150deg,var(--side-2),var(--side) 70%)}
+.gatecard{background:var(--surface);border-radius:22px;padding:38px 34px;width:min(420px,100%);
+  box-shadow:0 18px 60px rgba(120,40,70,.18);text-align:center}
+.gatecard .mark{font:700 13px/1 var(--mono);letter-spacing:.22em;text-transform:uppercase;color:var(--brand)}
+.gatecard h1{margin:12px 0 6px;font-size:30px}
+.gatecard p{color:var(--muted);font-size:13.5px;margin-inline:auto}
+.gbtn{margin-top:24px;width:100%;display:inline-flex;align-items:center;justify-content:center;gap:10px;
+  border:1px solid var(--line);background:var(--surface);color:var(--ink);
+  font:600 14.5px var(--body);padding:13px 18px;border-radius:12px;cursor:pointer}
+.gbtn:hover{border-color:var(--brand)}
+.gbtn svg{width:19px;height:19px;flex:none}
+.gnote{margin-top:18px;font-size:12px;color:var(--muted)}
+.gerr{margin-top:14px;font-size:13px;color:var(--crit);min-height:18px}
+
+/* ---- kerangka ---- */
+#app{display:none;grid-template-columns:238px minmax(0,1fr);min-height:100dvh}
+.side{position:sticky;top:0;height:100dvh;align-self:start;display:flex;flex-direction:column;gap:20px;
+  background:linear-gradient(180deg,var(--side-2),var(--side) 55%);color:var(--side-ink);
+  padding:26px 16px 18px;overflow:hidden}
+.brand{font:700 15px var(--display);letter-spacing:.01em;display:flex;flex-direction:column;gap:2px}
+.brand small{font:500 10px var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--side-mute)}
+.side-lbl{font:500 10.5px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--side-mute)}
+nav.tabs{display:flex;flex-direction:column;gap:4px}
+nav.tabs button{appearance:none;display:flex;align-items:center;gap:11px;background:none;color:var(--side-ink);
+  font:500 14px var(--body);padding:11px 12px;border:0;border-radius:10px;text-align:left;cursor:pointer;width:100%}
+nav.tabs button svg{width:19px;height:19px;flex:none;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+nav.tabs button:hover{background:var(--side-hover)}
+nav.tabs button[aria-selected="true"]{background:var(--pill);color:var(--pill-ink);font-weight:700;box-shadow:0 4px 14px rgba(120,40,70,.14)}
+.side-foot{margin-top:auto;border-top:1px solid var(--side-line);padding-top:14px;font-size:12px;color:var(--side-mute);line-height:1.6}
+.side-foot b{display:block;color:var(--side-ink);font-weight:600;font-size:12.5px}
+.keluar{margin-top:10px;font:500 12.5px var(--body);border:0;border-radius:9px;padding:8px 12px;
+  background:var(--side-hover);color:var(--side-ink);cursor:pointer}
+.wrap{max-width:1240px;width:100%;padding:0 28px 64px}
+.masthead{padding:26px 0 8px;display:flex;flex-direction:column;gap:4px}
+.crumb{font:500 11.5px var(--mono);color:var(--muted)}
+.meta{display:flex;flex-wrap:wrap;gap:4px 16px;font:12px var(--mono);color:var(--muted)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;
+  box-shadow:0 1px 2px rgba(90,30,50,.04),0 6px 22px rgba(90,30,50,.04)}
+.panel + .panel{margin-top:16px}
+.panel h3{margin-bottom:4px}
+.panel .sub{font-size:12.5px;color:var(--muted)}
+.kosong{text-align:center;padding:46px 18px;color:var(--muted)}
+.kosong h3{color:var(--ink);margin-bottom:6px}
+.pill{display:inline-block;font:600 10.5px/1.4 var(--mono);padding:3px 9px;border-radius:99px}
+.p-ok{background:var(--ok-soft);color:var(--ok)} .p-warn{background:var(--warn-soft);color:var(--warn)}
+.p-crit{background:var(--crit-soft);color:var(--crit)} .p-mute{background:var(--line-2);color:var(--muted)}
+@media (max-width:1000px){
+  #app{grid-template-columns:1fr}
+  .side{position:static;height:auto;flex-direction:row;align-items:center;gap:12px;padding:10px 14px;
+    background:linear-gradient(90deg,var(--side-2),var(--side))}
+  .side-lbl,.side-foot,nav.tabs button svg{display:none}
+  nav.tabs{flex-direction:row;overflow-x:auto;scrollbar-width:none;min-width:0}
+  nav.tabs button{padding:8px 12px;white-space:nowrap;font-size:13px}
+  .wrap{padding:0 16px 48px}
+}
+</style>
+</head>
+<body>
+
+<section id="gate">
+  <div class="gatecard">
+    <span class="mark">Floral.id</span>
+    <h1>Portal Internal</h1>
+    <p>Masuk dengan akun Google yang sudah didaftarkan. Tiap orang hanya melihat modul yang menjadi tanggung jawabnya.</p>
+    <button class="gbtn" id="btn-masuk">
+      <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.6 30.2.5 24 .5 14.6.5 6.5 5.9 2.6 13.7l7.8 6.1C12.3 13.5 17.6 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.6c0-1.6-.1-3.1-.4-4.6H24v9.1h12.4c-.5 2.9-2.2 5.3-4.7 7l7.6 5.9c4.5-4.1 6.8-10.2 6.8-17.4z"/><path fill="#FBBC05" d="M10.4 28.2c-.5-1.4-.7-2.9-.7-4.2s.3-2.9.7-4.2l-7.8-6.1C1 16.9 0 20.3 0 24s1 7.1 2.6 10.3l7.8-6.1z"/><path fill="#34A853" d="M24 47.5c6.2 0 11.5-2 15.3-5.6l-7.6-5.9c-2.1 1.4-4.8 2.3-7.7 2.3-6.4 0-11.7-4-13.6-9.6l-7.8 6.1C6.5 42.1 14.6 47.5 24 47.5z"/></svg>
+      Masuk dengan Google
+    </button>
+    <div class="gerr" id="gate-err"></div>
+    <div class="gnote">Belum pernah masuk? Akunmu akan dibuat otomatis, tapi belum bisa melihat apa pun sampai owner memberi akses.</div>
+  </div>
+</section>
+
+<div id="app">
+  <aside class="side">
+    <div class="brand">Portal Floral.id<small>Internal</small></div>
+    <span class="side-lbl">Modul</span>
+    <nav class="tabs" id="nav" role="tablist" aria-label="Modul"></nav>
+    <div class="side-foot">
+      <b id="u-nama">—</b>
+      <span id="u-peran">—</span>
+      <button class="keluar" id="btn-keluar" type="button">Keluar</button>
+    </div>
+  </aside>
+  <div class="wrap">
+    <header class="masthead">
+      <span class="crumb" id="crumb">Portal Floral.id</span>
+      <h1 id="judul">—</h1>
+      <div class="meta"><span id="meta-sumber">—</span></div>
+    </header>
+    <main id="isi"></main>
+  </div>
+</div>
+
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.47.10";
+
+const CFG = window.FLORAL_CONFIG || {};
+const gateErr = document.getElementById("gate-err");
+if (!CFG.url || !CFG.key) {
+  gateErr.textContent = "config.js belum diisi — kunci Supabase belum dipasang.";
+}
+const sb = (CFG.url && CFG.key) ? createClient(CFG.url, CFG.key) : null;
+
+/* Modul yang dikenal portal. 'grup' harus sama dengan modul_group di module_data. */
+const MODUL = [
+  { grup:"sales",     judul:"Sales & Operasional", ikon:'<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>' },
+  { grup:"finance",   judul:"Finance",             ikon:'<path d="M12 3v18M7 7h7a3 3 0 0 1 0 6H7m0 0h8"/>' },
+  { grup:"marketing", judul:"Sosmed & Marketing",  ikon:'<path d="M5 20V12M10 20V6M15 20v-9M20 20V9"/>' },
+  { grup:"event",     judul:"Event",               ikon:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 11h18"/>' },
+  { grup:"hr",        judul:"HR",                  ikon:'<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.6c2.7.2 5 2.1 5 5.4"/>' },
+  { grup:"produksi",  judul:"Produksi",            ikon:'<path d="M3 20h18M5 20V10l5 3V10l5 3V6l4 3v11"/>' }
+];
+
+let profil = null, aktif = null;
+
+function terlihat(){
+  if (!profil) return [];
+  if (profil.role === "owner") return MODUL;
+  const punya = profil.moduls || [];
+  return MODUL.filter(m => punya.includes(m.grup));
+}
+
+function gambarNav(){
+  const nav = document.getElementById("nav");
+  const list = terlihat();
+  nav.innerHTML = list.map(m =>
+    '<button role="tab" data-g="' + m.grup + '" aria-selected="false">' +
+    '<svg viewBox="0 0 24 24" aria-hidden="true">' + m.ikon + '</svg>' + m.judul + '</button>').join("");
+  nav.querySelectorAll("button").forEach(b =>
+    b.addEventListener("click", () => buka(b.dataset.g)));
+}
+
+function setJudul(t, crumb, sumber){
+  document.getElementById("judul").textContent = t;
+  document.getElementById("crumb").textContent = crumb || "Portal Floral.id";
+  document.getElementById("meta-sumber").textContent = sumber || "";
+}
+
+async function buka(grup){
+  aktif = grup;
+  document.querySelectorAll("#nav button").forEach(b =>
+    b.setAttribute("aria-selected", b.dataset.g === grup ? "true" : "false"));
+  const m = MODUL.find(x => x.grup === grup);
+  setJudul(m ? m.judul : "—", "Portal Floral.id / " + (m ? m.judul : ""), "");
+  const isi = document.getElementById("isi");
+  isi.innerHTML = '<div class="panel kosong"><h3>Memuat…</h3></div>';
+  try { location.hash = "#" + grup; } catch(e){}
+
+  const { data, error } = await sb.from("module_data")
+    .select("key,judul,payload,updated_at").eq("modul_group", grup).order("key");
+  if (error){
+    isi.innerHTML = '<div class="panel kosong"><h3>Tidak bisa memuat</h3><p>' + esc(error.message) + '</p></div>';
+    return;
+  }
+  if (!data || !data.length){
+    isi.innerHTML = '<div class="panel kosong"><h3>Belum ada data</h3>' +
+      '<p>Modul ini sudah aktif untukmu, tapi sumber datanya belum disambungkan.</p></div>';
+    return;
+  }
+  const stamp = data.map(d => d.updated_at).sort().pop();
+  setJudul(m.judul, "Portal Floral.id / " + m.judul,
+    "Diperbarui " + new Date(stamp).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"}));
+  isi.innerHTML = data.map(d =>
+    '<div class="panel"><h3>' + esc(d.judul || d.key) + '</h3>' +
+    '<p class="sub">' + ringkas(d.payload) + '</p></div>').join("");
+}
+
+function ringkas(p){
+  if (Array.isArray(p)) return p.length.toLocaleString("id-ID") + " baris data siap ditampilkan.";
+  if (p && typeof p === "object") return Object.keys(p).length + " bagian data siap ditampilkan.";
+  return "Data tersedia.";
+}
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+async function mulai(sesi){
+  document.getElementById("gate").style.display = "none";
+  document.getElementById("app").style.display = "grid";
+
+  const { data, error } = await sb.from("profiles")
+    .select("nama,email,role,moduls").eq("id", sesi.user.id).maybeSingle();
+  profil = data || { nama: sesi.user.email, role: "pending", moduls: [] };
+
+  document.getElementById("u-nama").textContent = profil.nama || sesi.user.email;
+  const list = terlihat();
+  document.getElementById("u-peran").textContent =
+    profil.role === "owner" ? "Owner · semua modul"
+    : (list.length ? profil.role + " · " + list.length + " modul" : "Menunggu akses");
+
+  gambarNav();
+  if (!list.length){
+    setJudul("Menunggu akses", "Portal Floral.id", "");
+    document.getElementById("isi").innerHTML =
+      '<div class="panel kosong"><h3>Akunmu sudah terdaftar</h3>' +
+      '<p>Tapi belum ada modul yang dibuka untukmu. Hubungi owner untuk diberi akses.</p>' +
+      '<p style="margin-top:10px"><span class="pill p-warn">' + esc(profil.role) + '</span></p></div>';
+    return;
+  }
+  const h = (location.hash || "").slice(1);
+  buka(list.some(m => m.grup === h) ? h : list[0].grup);
+}
+
+document.getElementById("btn-masuk").addEventListener("click", async () => {
+  if (!sb){ gateErr.textContent = "config.js belum diisi."; return; }
+  gateErr.textContent = "";
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: location.origin + location.pathname }
+  });
+  if (error) gateErr.textContent = "Gagal masuk: " + error.message;
+});
+
+document.getElementById("btn-keluar").addEventListener("click", async () => {
+  await sb.auth.signOut();
+  location.reload();
+});
+
+if (sb){
+  const { data } = await sb.auth.getSession();
+  if (data.session) mulai(data.session);
+  sb.auth.onAuthStateChange((ev, sesi) => { if (ev === "SIGNED_IN" && sesi) mulai(sesi); });
+}
+</script>
+</body>
+</html>
