@@ -15,6 +15,7 @@
   --brand:#d0688a; --ground:#fbf5f3; --surface:#fffdfc; --surface-2:#fbf0f1;
   --ink:#2b1d22; --ink-2:#5c4850; --muted:#8f7a82; --line:#f0dfe2; --line-2:#f7ecee;
   --ok:#2f7d4a; --ok-soft:#dff0dc; --warn:#c07a12; --warn-soft:#fbecd2; --crit:#cf4a3c; --crit-soft:#fbe0db;
+  --s2:#5b6f8f; --peach:#fdeee3;
   --display:"Source Serif 4",Georgia,serif;
   --body:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
@@ -25,7 +26,8 @@
   --pill:#f4c3cf; --pill-ink:#3a1424;
   --brand:#ee95b0; --ground:#1a1215; --surface:#241a1e; --surface-2:#1f1619;
   --ink:#f6ecee; --ink-2:#d5c2c8; --muted:#a08c93; --line:#3a2a30; --line-2:#2c2025;
-  --ok:#6cc08a; --ok-soft:#183a26; --warn:#e5a84b; --warn-soft:#3a2b12; --crit:#ec7466; --crit-soft:#3d1c18;}}
+  --ok:#6cc08a; --ok-soft:#183a26; --warn:#e5a84b; --warn-soft:#3a2b12; --crit:#ec7466; --crit-soft:#3d1c18;
+  --s2:#8ea3c4; --peach:#2b2016;}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--ground);color:var(--ink);font:14.5px/1.55 var(--body);-webkit-font-smoothing:antialiased}
 h1,h2,h3{margin:0;font-family:var(--display);line-height:1.2;text-wrap:balance}
@@ -33,9 +35,7 @@ h1{font-size:clamp(26px,4vw,40px);font-weight:700;letter-spacing:-.015em}
 h2{font-size:21px;font-weight:700} h3{font-size:17px;font-weight:700}
 p{margin:0;max-width:72ch}
 a{color:var(--brand)}
-.mono{font-family:var(--mono)}
 
-/* ---- gerbang masuk ---- */
 #gate{min-height:100dvh;display:grid;place-items:center;padding:24px;
   background:linear-gradient(150deg,var(--side-2),var(--side) 70%)}
 .gatecard{background:var(--surface);border-radius:22px;padding:38px 34px;width:min(420px,100%);
@@ -51,12 +51,11 @@ a{color:var(--brand)}
 .gnote{margin-top:18px;font-size:12px;color:var(--muted)}
 .gerr{margin-top:14px;font-size:13px;color:var(--crit);min-height:18px}
 
-/* ---- kerangka ---- */
 #app{display:none;grid-template-columns:238px minmax(0,1fr);min-height:100dvh}
 .side{position:sticky;top:0;height:100dvh;align-self:start;display:flex;flex-direction:column;gap:20px;
   background:linear-gradient(180deg,var(--side-2),var(--side) 55%);color:var(--side-ink);
   padding:26px 16px 18px;overflow:hidden}
-.brand{font:700 15px var(--display);letter-spacing:.01em;display:flex;flex-direction:column;gap:2px}
+.brand{font:700 15px var(--display);display:flex;flex-direction:column;gap:2px}
 .brand small{font:500 10px var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--side-mute)}
 .side-lbl{font:500 10.5px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--side-mute)}
 nav.tabs{display:flex;flex-direction:column;gap:4px}
@@ -69,20 +68,90 @@ nav.tabs button[aria-selected="true"]{background:var(--pill);color:var(--pill-in
 .side-foot b{display:block;color:var(--side-ink);font-weight:600;font-size:12.5px}
 .keluar{margin-top:10px;font:500 12.5px var(--body);border:0;border-radius:9px;padding:8px 12px;
   background:var(--side-hover);color:var(--side-ink);cursor:pointer}
-.wrap{max-width:1240px;width:100%;padding:0 28px 64px}
+.wrap{max-width:1240px;width:100%;padding:0 28px 64px;min-width:0}
 .masthead{padding:26px 0 8px;display:flex;flex-direction:column;gap:4px}
 .crumb{font:500 11.5px var(--mono);color:var(--muted)}
 .meta{display:flex;flex-wrap:wrap;gap:4px 16px;font:12px var(--mono);color:var(--muted)}
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;
-  box-shadow:0 1px 2px rgba(90,30,50,.04),0 6px 22px rgba(90,30,50,.04)}
-.panel + .panel{margin-top:16px}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;min-width:0;
+  box-shadow:0 1px 2px rgba(90,30,50,.04),0 6px 22px rgba(90,30,50,.04);margin-bottom:16px}
 .panel h3{margin-bottom:4px}
-.panel .sub{font-size:12.5px;color:var(--muted)}
+.panel .sub{font-size:12.5px;color:var(--muted);margin-bottom:12px}
 .kosong{text-align:center;padding:46px 18px;color:var(--muted)}
 .kosong h3{color:var(--ink);margin-bottom:6px}
-.pill{display:inline-block;font:600 10.5px/1.4 var(--mono);padding:3px 9px;border-radius:99px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.grid2>.panel{margin-bottom:0}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px;margin-bottom:16px}
+.kpi{position:relative;overflow:hidden;background:var(--surface);border:1px solid var(--line);border-radius:16px;
+  padding:16px 18px;display:flex;flex-direction:column;gap:4px;min-width:0;box-shadow:0 1px 2px rgba(90,30,50,.04)}
+.kpi .l{font-size:12px;color:var(--muted)}
+.kpi .v{font:700 26px/1.1 var(--display);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.kpi .n{font-size:11.5px;color:var(--muted)}
+.kpis .kpi:first-child{background:linear-gradient(135deg,var(--side-2),var(--side));border-color:transparent;color:var(--side-ink)}
+.kpis .kpi:first-child .l{color:var(--rose-label);font:500 10.5px var(--mono);letter-spacing:.14em;text-transform:uppercase}
+.kpis .kpi:first-child .v{color:var(--side-ink);font-size:30px}
+.kpis .kpi:first-child .n{color:var(--side-mute)}
+.kpi.warn{background:var(--peach);border-color:transparent} .kpi.warn .v{color:var(--warn)}
+.kpi.bad{background:var(--crit-soft);border-color:transparent} .kpi.bad .v{color:var(--crit)}
+.kpi.good .v{color:var(--ok)}
+
+.tblwrap,.chart{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:7px 9px;border-bottom:1px solid var(--line-2);text-align:left;vertical-align:top}
+th{font:500 10.5px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);
+  border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:bottom}
+td.n,th.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+tr.tot td{font-weight:600;background:var(--surface-2)}
+.pill{display:inline-block;font:600 10.5px/1.4 var(--mono);padding:2px 8px;border-radius:99px;white-space:nowrap}
 .p-ok{background:var(--ok-soft);color:var(--ok)} .p-warn{background:var(--warn-soft);color:var(--warn)}
 .p-crit{background:var(--crit-soft);color:var(--crit)} .p-mute{background:var(--line-2);color:var(--muted)}
+.mbar{height:9px;background:var(--line-2);border-radius:99px;overflow:hidden;min-width:60px}
+.mbar span{display:block;height:100%;border-radius:99px;background:var(--brand)}
+.seg{display:flex;border:1px solid var(--line);border-radius:99px;overflow:hidden;background:var(--surface)}
+.seg div{flex:none;height:12px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font:500 11.5px var(--mono);color:var(--muted);margin-top:8px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.note{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:11px 14px;font-size:12.5px;color:var(--ink-2)}
+.find{border:1px solid var(--line);border-left:3px solid var(--sev,var(--warn));border-radius:12px;padding:12px 14px;background:var(--surface)}
+.find.crit{--sev:var(--crit)} .find.warn{--sev:var(--warn)} .find.info{--sev:var(--s2)}
+.find b{display:block;margin-bottom:2px}
+.find p{font-size:13px;color:var(--ink-2)}
+.stack{display:flex;flex-direction:column;gap:10px}
+svg text{font-family:var(--mono);fill:var(--muted);font-size:10px}
+
+.subtab{display:flex;gap:4px;flex-wrap:wrap;margin:4px 0 10px;border-bottom:1px solid var(--line);padding-bottom:10px}
+.subtab button{appearance:none;background:none;border:0;border-radius:99px;padding:8px 14px;cursor:pointer;
+  font:500 13.5px var(--body);color:var(--ink-2)}
+.subtab button:hover{background:var(--surface-2)}
+.subtab button[aria-selected="true"]{background:var(--brand);color:#fff;font-weight:700}
+.modfilter{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:16px}
+.modfilter label{display:flex;flex-direction:column;gap:3px;font:500 10.5px var(--mono);
+  letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.modfilter select{font:500 13.5px var(--body);color:var(--ink);background:var(--surface);
+  border:1px solid var(--line);border-radius:10px;padding:9px 12px;min-width:118px}
+.reset{font:500 12.5px var(--body);border-radius:10px;padding:9px 14px;background:var(--side);
+  color:var(--side-ink);border:0;cursor:pointer}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+
+.detbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.detbar input{flex:1;min-width:200px;font:400 13.5px var(--body);color:var(--ink);background:var(--surface);
+  border:1px solid var(--line);border-radius:10px;padding:9px 12px}
+.det-info{font:500 11.5px var(--mono);color:var(--muted)}
+.det-unduh{font:600 12.5px var(--body);border:1px solid var(--line);background:var(--surface);color:var(--ink);
+  border-radius:10px;padding:9px 14px;cursor:pointer}
+.det-unduh:hover{border-color:var(--brand);color:var(--brand)}
+.detnav{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+.detnav button{font:500 12.5px var(--body);border:1px solid var(--line);background:var(--surface);
+  color:var(--ink-2);border-radius:10px;padding:8px 13px;cursor:pointer}
+.detnav button:hover{border-color:var(--brand);color:var(--brand)}
+.det-baris{cursor:pointer}
+.det-baris:hover td{background:var(--surface-2)}
+.det-tanda{color:var(--muted);width:18px;font-size:11px}
+.det-rinci td{background:var(--surface-2);font-size:12.5px}
+.chip{display:inline-block;background:var(--surface);border:1px solid var(--line);border-radius:99px;
+  padding:3px 10px;margin:2px 4px 2px 0;font:500 11.5px var(--mono);color:var(--ink-2)}
+
 @media (max-width:1000px){
   #app{grid-template-columns:1fr}
   .side{position:static;height:auto;flex-direction:row;align-items:center;gap:12px;padding:10px 14px;
@@ -91,6 +160,7 @@ nav.tabs button[aria-selected="true"]{background:var(--pill);color:var(--pill-in
   nav.tabs{flex-direction:row;overflow-x:auto;scrollbar-width:none;min-width:0}
   nav.tabs button{padding:8px 12px;white-space:nowrap;font-size:13px}
   .wrap{padding:0 16px 48px}
+  .grid2{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -125,7 +195,7 @@ nav.tabs button[aria-selected="true"]{background:var(--pill);color:var(--pill-in
     <header class="masthead">
       <span class="crumb" id="crumb">Portal Floral.id</span>
       <h1 id="judul">—</h1>
-      <div class="meta"><span id="meta-sumber">—</span></div>
+      <div class="meta"><span id="meta-sumber"></span></div>
     </header>
     <main id="isi"></main>
   </div>
@@ -136,12 +206,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.47.10";
 
 const CFG = window.FLORAL_CONFIG || {};
 const gateErr = document.getElementById("gate-err");
-if (!CFG.url || !CFG.key) {
-  gateErr.textContent = "config.js belum diisi — kunci Supabase belum dipasang.";
-}
+if (!CFG.url || !CFG.key) gateErr.textContent = "config.js belum diisi — kunci Supabase belum dipasang.";
 const sb = (CFG.url && CFG.key) ? createClient(CFG.url, CFG.key) : null;
 
-/* Modul yang dikenal portal. 'grup' harus sama dengan modul_group di module_data. */
 const MODUL = [
   { grup:"sales",     judul:"Sales & Operasional", ikon:'<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>' },
   { grup:"finance",   judul:"Finance",             ikon:'<path d="M12 3v18M7 7h7a3 3 0 0 1 0 6H7m0 0h8"/>' },
@@ -151,37 +218,37 @@ const MODUL = [
   { grup:"produksi",  judul:"Produksi",            ikon:'<path d="M3 20h18M5 20V10l5 3V10l5 3V6l4 3v11"/>' }
 ];
 
-let profil = null, aktif = null;
-
-function terlihat(){
-  if (!profil) return [];
-  if (profil.role === "owner") return MODUL;
-  const punya = profil.moduls || [];
-  return MODUL.filter(m => punya.includes(m.grup));
+const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt = n => (Math.round(n) || 0).toLocaleString("id-ID");
+function rp(rb){                       // nilai agregat disimpan dalam ribuan rupiah
+  const v = (rb || 0) * 1000;
+  if (Math.abs(v) >= 1e9) return "Rp " + (v / 1e9).toFixed(2).replace(".", ",") + " M";
+  if (Math.abs(v) >= 1e6) return "Rp " + (v / 1e6).toFixed(1).replace(".", ",") + " jt";
+  return "Rp " + fmt(v);
 }
+const pct = (a, b) => b ? Math.round(a / b * 1000) / 10 : 0;
+const API = { esc, fmt, rp, pct,
+  setMeta: t => { document.getElementById("meta-sumber").textContent = t; } };
+
+let profil = null;
+const terlihat = () => !profil ? []
+  : profil.role === "owner" ? MODUL
+  : MODUL.filter(m => (profil.moduls || []).includes(m.grup));
 
 function gambarNav(){
   const nav = document.getElementById("nav");
-  const list = terlihat();
-  nav.innerHTML = list.map(m =>
-    '<button role="tab" data-g="' + m.grup + '" aria-selected="false">' +
-    '<svg viewBox="0 0 24 24" aria-hidden="true">' + m.ikon + '</svg>' + m.judul + '</button>').join("");
-  nav.querySelectorAll("button").forEach(b =>
-    b.addEventListener("click", () => buka(b.dataset.g)));
-}
-
-function setJudul(t, crumb, sumber){
-  document.getElementById("judul").textContent = t;
-  document.getElementById("crumb").textContent = crumb || "Portal Floral.id";
-  document.getElementById("meta-sumber").textContent = sumber || "";
+  nav.innerHTML = terlihat().map(m =>
+    `<button role="tab" data-g="${m.grup}" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true">${m.ikon}</svg>${m.judul}</button>`).join("");
+  nav.querySelectorAll("button").forEach(b => b.addEventListener("click", () => buka(b.dataset.g)));
 }
 
 async function buka(grup){
-  aktif = grup;
   document.querySelectorAll("#nav button").forEach(b =>
     b.setAttribute("aria-selected", b.dataset.g === grup ? "true" : "false"));
   const m = MODUL.find(x => x.grup === grup);
-  setJudul(m ? m.judul : "—", "Portal Floral.id / " + (m ? m.judul : ""), "");
+  document.getElementById("judul").textContent = m ? m.judul : "—";
+  document.getElementById("crumb").textContent = "Portal Floral.id / " + (m ? m.judul : "");
+  API.setMeta("");
   const isi = document.getElementById("isi");
   isi.innerHTML = '<div class="panel kosong"><h3>Memuat…</h3></div>';
   try { location.hash = "#" + grup; } catch(e){}
@@ -189,7 +256,7 @@ async function buka(grup){
   const { data, error } = await sb.from("module_data")
     .select("key,judul,payload,updated_at").eq("modul_group", grup).order("key");
   if (error){
-    isi.innerHTML = '<div class="panel kosong"><h3>Tidak bisa memuat</h3><p>' + esc(error.message) + '</p></div>';
+    isi.innerHTML = `<div class="panel kosong"><h3>Tidak bisa memuat</h3><p>${esc(error.message)}</p></div>`;
     return;
   }
   if (!data || !data.length){
@@ -197,42 +264,42 @@ async function buka(grup){
       '<p>Modul ini sudah aktif untukmu, tapi sumber datanya belum disambungkan.</p></div>';
     return;
   }
+  let mod = null;
+  try { mod = await import(`./mod-${grup}.js`); } catch(e){ mod = null; }
+  if (mod && typeof mod.render === "function"){
+    try { mod.render(isi, data, API); return; }
+    catch(e){
+      isi.innerHTML = `<div class="panel kosong"><h3>Modul gagal ditampilkan</h3><p>${esc(e.message)}</p></div>`;
+      return;
+    }
+  }
   const stamp = data.map(d => d.updated_at).sort().pop();
-  setJudul(m.judul, "Portal Floral.id / " + m.judul,
-    "Diperbarui " + new Date(stamp).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"}));
-  isi.innerHTML = data.map(d =>
-    '<div class="panel"><h3>' + esc(d.judul || d.key) + '</h3>' +
-    '<p class="sub">' + ringkas(d.payload) + '</p></div>').join("");
+  API.setMeta("Diperbarui " + new Date(stamp).toLocaleString("id-ID", { dateStyle:"medium", timeStyle:"short" }));
+  isi.innerHTML = data.map(d => {
+    const p = d.payload;
+    const n = Array.isArray(p) ? fmt(p.length) + " baris data"
+      : (p && typeof p === "object") ? Object.keys(p).length + " bagian data" : "Data tersedia";
+    return `<div class="panel"><h3>${esc(d.judul || d.key)}</h3><p class="sub">${n} — tampilan modulnya belum dibuat.</p></div>`;
+  }).join("");
 }
-
-function ringkas(p){
-  if (Array.isArray(p)) return p.length.toLocaleString("id-ID") + " baris data siap ditampilkan.";
-  if (p && typeof p === "object") return Object.keys(p).length + " bagian data siap ditampilkan.";
-  return "Data tersedia.";
-}
-function esc(s){ return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 
 async function mulai(sesi){
   document.getElementById("gate").style.display = "none";
   document.getElementById("app").style.display = "grid";
-
-  const { data, error } = await sb.from("profiles")
-    .select("nama,email,role,moduls").eq("id", sesi.user.id).maybeSingle();
+  const { data } = await sb.from("profiles").select("nama,email,role,moduls").eq("id", sesi.user.id).maybeSingle();
   profil = data || { nama: sesi.user.email, role: "pending", moduls: [] };
-
   document.getElementById("u-nama").textContent = profil.nama || sesi.user.email;
   const list = terlihat();
   document.getElementById("u-peran").textContent =
     profil.role === "owner" ? "Owner · semua modul"
-    : (list.length ? profil.role + " · " + list.length + " modul" : "Menunggu akses");
-
+    : (list.length ? `${profil.role} · ${list.length} modul` : "Menunggu akses");
   gambarNav();
   if (!list.length){
-    setJudul("Menunggu akses", "Portal Floral.id", "");
+    document.getElementById("judul").textContent = "Menunggu akses";
     document.getElementById("isi").innerHTML =
       '<div class="panel kosong"><h3>Akunmu sudah terdaftar</h3>' +
       '<p>Tapi belum ada modul yang dibuka untukmu. Hubungi owner untuk diberi akses.</p>' +
-      '<p style="margin-top:10px"><span class="pill p-warn">' + esc(profil.role) + '</span></p></div>';
+      `<p style="margin-top:10px"><span class="pill p-warn">${esc(profil.role)}</span></p></div>`;
     return;
   }
   const h = (location.hash || "").slice(1);
@@ -248,10 +315,8 @@ document.getElementById("btn-masuk").addEventListener("click", async () => {
   });
   if (error) gateErr.textContent = "Gagal masuk: " + error.message;
 });
-
 document.getElementById("btn-keluar").addEventListener("click", async () => {
-  await sb.auth.signOut();
-  location.reload();
+  await sb.auth.signOut(); location.reload();
 });
 
 if (sb){
