@@ -152,8 +152,44 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .chip{display:inline-block;background:var(--surface);border:1px solid var(--line);border-radius:99px;
   padding:3px 10px;margin:2px 4px 2px 0;font:500 11.5px var(--mono);color:var(--ink-2)}
 
+/* analisa vertikal / horizontal */
+.vh-dua{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.vh-dua>.panel{margin-bottom:0}
+.vh-barhead{width:84px}
+.vh-barcell{width:84px;vertical-align:middle}
+.vh-note{font:500 11px var(--mono);color:var(--muted)}
+.vh-naik{color:var(--ok)} .vh-turun{color:var(--crit)}
+.vh-temu{margin-top:12px;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;
+  padding:11px 14px;font-size:12.5px;color:var(--ink-2);line-height:1.6}
+
+/* analisa AI */
+.ai-panel{border-color:var(--accent-soft);background:linear-gradient(180deg,var(--accent-soft),var(--surface) 72px)}
+.ai-head{display:flex;gap:14px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+.ai-head .sub{margin-bottom:0;max-width:62ch}
+.ai-btn{flex:none;font:600 13px var(--body);color:#fff;background:var(--brand);border:0;border-radius:11px;
+  padding:11px 17px;cursor:pointer;box-shadow:0 4px 14px rgba(168,57,92,.2)}
+.ai-btn:hover{filter:brightness(.95)} .ai-btn:disabled{opacity:.6;cursor:progress}
+.ai-out{margin-top:14px;border-top:1px dashed var(--line);padding-top:12px}
+.ai-tunggu{font-size:13px;color:var(--muted)}
+.ai-teks{font-size:13.5px;line-height:1.68;color:var(--ink-2)}
+.ai-teks h4{margin:14px 0 4px;font-family:var(--display);font-size:15px;color:var(--ink)}
+.ai-teks p{margin:6px 0;max-width:80ch} .ai-teks ul,.ai-teks ol{margin:6px 0 6px 2px;padding-left:20px}
+.ai-teks li{margin:3px 0} .ai-teks b{color:var(--ink)}
+.ai-kaki{margin-top:12px;font:500 11px var(--mono);color:var(--muted)}
+
+/* penanda data langsung */
+.live{display:inline-flex;align-items:center;gap:6px}
+.live i{width:7px;height:7px;border-radius:99px;background:var(--ok);display:inline-block}
+.live.off i{background:var(--muted)}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(12px);z-index:50;
+  background:var(--side-ink);color:var(--pill);font:600 13px var(--body);padding:11px 18px;border-radius:99px;
+  box-shadow:0 10px 30px rgba(60,20,35,.3);opacity:0;transition:opacity .2s,transform .2s;pointer-events:none}
+.toast.tampil{opacity:1;transform:translateX(-50%) translateY(0)}
+nav.tabs button .dot{margin-left:auto;width:7px;height:7px;border-radius:99px;background:var(--brand);flex:none}
+
 @media (max-width:1000px){
   #app{grid-template-columns:1fr}
+  .vh-dua{grid-template-columns:1fr}
   .side{position:static;height:auto;flex-direction:row;align-items:center;gap:12px;padding:10px 14px;
     background:linear-gradient(90deg,var(--side-2),var(--side))}
   .side-lbl,.side-foot,nav.tabs button svg{display:none}
@@ -195,7 +231,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
     <header class="masthead">
       <span class="crumb" id="crumb">Portal Floral.id</span>
       <h1 id="judul">—</h1>
-      <div class="meta"><span id="meta-sumber"></span></div>
+      <div class="meta"><span id="meta-sumber"></span><span id="meta-live"></span></div>
     </header>
     <main id="isi"></main>
   </div>
@@ -203,6 +239,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 
 <script type="module">
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.47.10";
+import * as VH from "./analisa.js";
 
 const CFG = window.FLORAL_CONFIG || {};
 const gateErr = document.getElementById("gate-err");
@@ -227,8 +264,54 @@ function rp(rb){                       // nilai agregat disimpan dalam ribuan ru
   return "Rp " + fmt(v);
 }
 const pct = (a, b) => b ? Math.round(a / b * 1000) / 10 : 0;
-const API = { esc, fmt, rp, pct,
+/* Analisa AI lewat Edge Function Supabase (kunci Gemini ada di server, tidak pernah di browser) */
+async function ai(judul, data) {
+  if (!sb) throw new Error("Supabase belum siap.");
+  const { data: res, error } = await sb.functions.invoke("analisa", {
+    body: { judul, modul: grupAktif, data }
+  });
+  if (error) {
+    let pesan = error.message || "gagal memanggil layanan analisa";
+    try { const j = await error.context.json(); if (j && j.error) pesan = j.error; } catch (e) {}
+    throw new Error(pesan);
+  }
+  if (!res || !res.teks) throw new Error("Layanan analisa tidak mengembalikan teks.");
+  return res.teks;
+}
+
+const API = { esc, fmt, rp, pct, ai,
+  vertikal: VH.vertikal, horizontal: VH.horizontal, duaAnalisa: VH.duaAnalisa,
+  kartuAI: VH.kartuAI, pasangAI: VH.pasangAI,
   setMeta: t => { document.getElementById("meta-sumber").textContent = t; } };
+
+/* ---------- penanda data langsung ---------- */
+let toastTimer = null;
+function toast(teks) {
+  let el = document.getElementById("toast");
+  if (!el) { el = document.createElement("div"); el.id = "toast"; el.className = "toast"; document.body.appendChild(el); }
+  el.textContent = teks;
+  el.classList.add("tampil");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("tampil"), 3600);
+}
+let kanalHidup = false;
+function tandaiSumber(data) {
+  const el = document.getElementById("meta-live");
+  if (!el) return;
+  const stamp = (data || []).map(d => d.updated_at).filter(Boolean).sort().pop();
+  const waktu = stamp
+    ? new Date(stamp).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })
+    : "—";
+  el.className = "live" + (kanalHidup ? "" : " off");
+  el.innerHTML = `<i></i>${kanalHidup ? "Live" : "Tidak live"} · data ${esc(waktu)}`;
+}
+function tandaiNav(grup, ada) {
+  const b = document.querySelector(`#nav button[data-g="${CSS.escape(grup)}"]`);
+  if (!b) return;
+  const titik = b.querySelector(".dot");
+  if (ada && !titik) { const s = document.createElement("span"); s.className = "dot"; b.appendChild(s); }
+  if (!ada && titik) titik.remove();
+}
 
 let profil = null;
 const terlihat = () => !profil ? []
@@ -242,15 +325,21 @@ function gambarNav(){
   nav.querySelectorAll("button").forEach(b => b.addEventListener("click", () => buka(b.dataset.g)));
 }
 
-async function buka(grup){
+let grupAktif = null;
+
+async function buka(grup, diam){
+  grupAktif = grup;
+  tandaiNav(grup, false);
   document.querySelectorAll("#nav button").forEach(b =>
     b.setAttribute("aria-selected", b.dataset.g === grup ? "true" : "false"));
   const m = MODUL.find(x => x.grup === grup);
   document.getElementById("judul").textContent = m ? m.judul : "—";
   document.getElementById("crumb").textContent = "Portal Floral.id / " + (m ? m.judul : "");
-  API.setMeta("");
   const isi = document.getElementById("isi");
-  isi.innerHTML = '<div class="panel kosong"><h3>Memuat…</h3></div>';
+  if (!diam) {
+    API.setMeta("");
+    isi.innerHTML = '<div class="panel kosong"><h3>Memuat…</h3></div>';
+  }
   try { location.hash = "#" + grup; } catch(e){}
 
   const { data, error } = await sb.from("module_data")
@@ -267,14 +356,13 @@ async function buka(grup){
   let mod = null;
   try { mod = await import(`./mod-${grup}.js`); } catch(e){ mod = null; }
   if (mod && typeof mod.render === "function"){
-    try { mod.render(isi, data, API); return; }
+    try { mod.render(isi, data, API); tandaiSumber(data); return; }
     catch(e){
       isi.innerHTML = `<div class="panel kosong"><h3>Modul gagal ditampilkan</h3><p>${esc(e.message)}</p></div>`;
       return;
     }
   }
-  const stamp = data.map(d => d.updated_at).sort().pop();
-  API.setMeta("Diperbarui " + new Date(stamp).toLocaleString("id-ID", { dateStyle:"medium", timeStyle:"short" }));
+  tandaiSumber(data);
   isi.innerHTML = data.map(d => {
     const p = d.payload;
     const n = Array.isArray(p) ? fmt(p.length) + " baris data"
@@ -304,6 +392,36 @@ async function mulai(sesi){
   }
   const h = (location.hash || "").slice(1);
   buka(list.some(m => m.grup === h) ? h : list[0].grup);
+  pasangRealtime();
+}
+
+/* ---------- realtime: halaman ikut berubah begitu Apps Script menulis data baru ---------- */
+let kanal = null, tundaMuat = null;
+function pasangRealtime(){
+  if (kanal) return;
+  kanal = sb.channel("modul-langsung")
+    .on("postgres_changes", { event: "*", schema: "public", table: "module_data" }, p => {
+      // kalau payload terlalu besar, Realtime mengirim baris kosong — anggap modul yang
+      // sedang dibuka ikut berubah, biarkan penyegaran yang memastikan.
+      const g = (p.new && p.new.modul_group) || (p.old && p.old.modul_group) || null;
+      if (g && g !== grupAktif) {
+        if (terlihat().some(m => m.grup === g)) tandaiNav(g, true);
+        return;
+      }
+      clearTimeout(tundaMuat);                 // beberapa key menyusul dalam satu sinkron
+      tundaMuat = setTimeout(async () => {
+        await buka(grupAktif, true);
+        toast("Data diperbarui dari spreadsheet");
+      }, 1500);
+    })
+    .subscribe(status => {
+      kanalHidup = (status === "SUBSCRIBED");
+      const el = document.getElementById("meta-live");
+      if (el && el.textContent) {
+        el.className = "live" + (kanalHidup ? "" : " off");
+        el.innerHTML = el.innerHTML.replace(/Live|Tidak live/, kanalHidup ? "Live" : "Tidak live");
+      }
+    });
 }
 
 document.getElementById("btn-masuk").addEventListener("click", async () => {
