@@ -393,6 +393,11 @@ async function mulai(sesi){
   const h = (location.hash || "").slice(1);
   buka(list.some(m => m.grup === h) ? h : list[0].grup);
   pasangRealtime();
+  /* tombol back/forward dan tautan ber-hash ikut mengganti modul */
+  window.onhashchange = () => {
+    const g = (location.hash || "").slice(1);
+    if (g && g !== grupAktif && terlihat().some(m => m.grup === g)) buka(g);
+  };
 }
 
 /* ---------- realtime: halaman ikut berubah begitu Apps Script menulis data baru ---------- */
