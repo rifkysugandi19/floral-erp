@@ -455,10 +455,106 @@ function pData() {
 
 const GAMBAR = { ringkasan: pRingkasan, jual: pJual, antrian: pAntrian, retur: pRetur, beban: pBeban, data: pData };
 
+/* ---------- analisa vertikal & horizontal (bentuknya sama di semua halaman) ---------- */
+const rpRb = v => A.rp(v);
+const barisDari = peta => urut(peta, true).map(([label, nilai]) => ({ label, nilai }));
+const seriBulan = metrik => urut(grup("BULAN", metrik, r => r.d1, r => cocok(r.d1, r.d2)), false);
+
+function hitungDetail(sumber, iTgl, iPlat, iKunci, iNilai) {
+  const peta = {};
+  for (const r of sumber) {
+    if (!detCocok(r[iTgl], r[iPlat])) continue;
+    const k = String(r[iKunci] || "").trim() || "(tidak diisi)";
+    peta[k] = (peta[k] || 0) + (iNilai == null ? 1 : (+r[iNilai] || 0));
+  }
+  return peta;
+}
+
+const VHDEF = {
+  ringkasan: () => ({
+    v: { judul: "Analisa vertikal — GMV per platform", labelKolom: "Platform", fmt: rpRb,
+         sub: "Porsi tiap platform terhadap total GMV pada periode yang difilter.",
+         baris: barisDari(grup("BULAN", "gmv_rb", r => r.d2, r => cocok(r.d1, r.d2))) },
+    h: { judul: "Analisa horizontal — GMV per bulan", fmt: rpRb,
+         sub: "Pergerakan GMV antar bulan, termasuk perbandingan dengan bulan yang sama tahun lalu.",
+         seri: seriBulan("gmv_rb") }
+  }),
+  jual: () => ({
+    v: { judul: "Analisa vertikal — GMV per kategori", labelKolom: "Kategori", fmt: rpRb,
+         sub: "Kategori mana yang menopang penjualan, dan seberapa terkonsentrasi.",
+         baris: barisDari(grup("KATEGORI", "gmv_rb", r => r.d1, r => cocok(r.d3, r.d2))) },
+    h: { judul: "Analisa horizontal — jumlah pesanan per bulan", fmt: v => A.fmt(v),
+         sub: "Volume pesanan antar bulan — dipakai untuk melihat apakah GMV naik karena harga atau karena jumlah.",
+         seri: seriBulan("orders") }
+  }),
+  antrian: () => ({
+    v: { judul: "Analisa vertikal — antrian per kelas status", labelKolom: "Kelas", fmt: v => A.fmt(v),
+         sub: "Komposisi pesanan yang masih nyangkut di antrian kirim.",
+         baris: barisDari(hitungDetail(ANTRIAN, 1, 2, 7, null)) },
+    h: { judul: "Analisa horizontal — pesanan per bulan", fmt: v => A.fmt(v),
+         sub: "Beban pesanan yang masuk tiap bulan, sebagai pembanding besarnya antrian.",
+         seri: seriBulan("orders") }
+  }),
+  retur: () => ({
+    v: { judul: "Analisa vertikal — nilai retur per alasan", labelKolom: "Alasan retur", fmt: v => A.rp(v / 1000),
+         sub: "Alasan mana yang paling mahal, bukan sekadar paling sering.",
+         baris: barisDari(hitungDetail(RETUR, 1, 2, 6, 10)) },
+    h: { judul: "Analisa horizontal — jumlah retur per bulan", fmt: v => A.fmt(v),
+         sub: "Apakah retur membaik atau memburuk dari bulan ke bulan.",
+         seri: seriBulan("retur") }
+  }),
+  beban: () => ({
+    v: { judul: "Analisa vertikal — pesanan per hari", labelKolom: "Hari", fmt: v => A.fmt(v),
+         sub: "Sebaran beban kerja gudang sepanjang minggu.",
+         baris: barisDari(grup("HARIAN", "orders",
+           r => HARI[new Date(r.d1 + "T00:00:00").getDay() || 7] || r.d1,
+           r => {
+             const ym = r.d1.slice(0, 7);
+             return (FY === "all" || r.d1.slice(0, 4) === FY) &&
+                    (FM === "all" || ym === FM) &&
+                    (FP === "all" || r.d2 === FP);
+           })) },
+    h: { judul: "Analisa horizontal — pesanan per bulan", fmt: v => A.fmt(v),
+         sub: "Tren beban bulanan yang harus ditanggung tim packing.",
+         seri: seriBulan("orders") }
+  }),
+  data: () => ({
+    v: { judul: "Analisa vertikal — temuan kualitas data", labelKolom: "Jenis temuan", fmt: v => A.fmt(v),
+         sub: "Jenis masalah data mana yang paling banyak menyentuh pesanan.",
+         baris: barisDari(grup("KUALITAS", "orders", r => r.d1)) },
+    h: { judul: "Analisa horizontal — pesanan per bulan", fmt: v => A.fmt(v),
+         sub: "Pembanding volume, supaya jumlah temuan dibaca relatif terhadap besarnya data.",
+         seri: seriBulan("orders") }
+  })
+};
+
+function konteksAI() {
+  const def = VHDEF[HAL] ? VHDEF[HAL]() : null;
+  const nama = (HALAMAN.find(h => h[0] === HAL) || [, HAL])[1];
+  return {
+    judul: nama,
+    data: {
+      modul: "Sales & Operasional",
+      halaman: nama,
+      filter: { tahun: FY, bulan: FM, platform: FP },
+      catatan: "nilai berakhiran _rb dalam ribuan rupiah",
+      ringkas: { pesanan: bul("orders"), gmv_rb: bul("gmv_rb"), retur: bul("retur") },
+      vertikal: def ? { judul: def.v.judul, baris: def.v.baris.slice(0, 15).map(b => [b.label, Math.round(b.nilai)]) } : null,
+      horizontal: def ? { judul: def.h.judul, seri: def.h.seri.map(([k, v]) => [k, Math.round(v)]) } : null
+    }
+  };
+}
+
 /* ---------- kerangka modul ---------- */
 function gambar() {
-  const isi = GAMBAR[HAL]();
+  const def = VHDEF[HAL] ? VHDEF[HAL]() : null;
+  const nama = (HALAMAN.find(h => h[0] === HAL) || [, HAL])[1];
+  const isi = GAMBAR[HAL]()
+    + (def ? A.duaAnalisa(def.v, def.h) : "")
+    + A.kartuAI(HAL, "Analisa AI — " + nama,
+        "Gemini membaca angka halaman ini beserta kedua tabel analisa di atas, lalu merangkum komposisi, pergerakan, dan tindakan yang perlu diambil.");
   wadah.querySelector("#mod-isi").innerHTML = isi;
+  A.pasangAI(wadah, A, () => konteksAI());
   wadah.querySelectorAll(".subtab button").forEach(b =>
     b.setAttribute("aria-selected", b.dataset.h === HAL ? "true" : "false"));
   Object.keys(DET).forEach(id => { if (document.getElementById(id)) gambarDetail(id); });
