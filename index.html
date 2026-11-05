@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>Portal Floral.id</title>
 <script src="config.js"></script>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -261,6 +262,450 @@ footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--line);font-si
   </div>
 </div>
 
+<!-- Analisa vertikal + horizontal + tombol Analisa AI untuk tiap halaman hub.
+     Disisipkan oleh bangun_portal.py. Tidak menyentuh kode hub sama sekali:
+     angkanya dibaca dari tabel yang sudah digambar hub di layar, jadi apa pun
+     filter Tahun/Bulan yang sedang aktif, analisanya ikut. -->
+<style>
+.vh-blok{margin-top:18px;display:grid;gap:14px}
+@media(min-width:900px){.vh-blok .vh-duo{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}}
+.vh-blok .vh-duo{display:grid;gap:14px}
+.vh-kep{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap}
+.vh-tag{font:700 10px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;
+  color:var(--brand);border:1px solid var(--line);border-radius:99px;padding:5px 9px}
+.vh-ket{font-size:12.5px;color:var(--muted);margin:8px 0 14px;line-height:1.6}
+.vh-baris{display:grid;grid-template-columns:minmax(80px,1.1fr) 2fr auto;gap:10px;
+  align-items:center;padding:5px 0;font-size:13px}
+.vh-baris + .vh-baris{border-top:1px solid var(--line)}
+.vh-nama{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vh-rel{height:7px;border-radius:99px;background:var(--line);overflow:hidden}
+.vh-rel i{display:block;height:100%;border-radius:99px;background:var(--brand)}
+.vh-rel i.turun{background:var(--crit,#c0504a)}
+.vh-num{font:600 12.5px var(--mono);text-align:right;white-space:nowrap}
+.vh-sim{font-size:13px;line-height:1.7;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.vh-naik{color:#2f7d4a;font-weight:600}
+.vh-turun{color:var(--crit,#c0504a);font-weight:600}
+.vh-ai .vh-btn{border:1px solid var(--brand);background:transparent;color:var(--brand);
+  font:600 13px var(--body);padding:9px 16px;border-radius:10px;cursor:pointer}
+.vh-ai .vh-btn:hover{background:var(--brand);color:#fff}
+.vh-ai .vh-btn[disabled]{opacity:.55;cursor:default}
+.vh-hasil{margin-top:14px;font-size:13.5px;line-height:1.75}
+.vh-hasil h4{margin:16px 0 5px;font-size:13px;letter-spacing:.02em}
+.vh-hasil h4:first-child{margin-top:0}
+.vh-hasil ul{margin:6px 0;padding-left:18px}
+.vh-hasil li{margin:3px 0}
+.vh-hasil p{margin:6px 0}
+.vh-err{color:var(--crit,#c0504a);font-size:13px;margin-top:10px}
+</style>
+
+<script>
+(function () {
+"use strict";
+
+var VH = window.__VH = { sb: null };
+
+/* ---------- membaca angka yang sudah diformat hub ---------- */
+/* "Rp 740,2 jt" -> 740200000 ; "7.280" -> 7280 ; "12,3%" -> 12.3 */
+function angka(t) {
+  if (t == null) return null;
+  var s = String(t).replace(/ /g, " ").trim();
+  if (!s || /^[—–-]+$/.test(s)) return null;
+  var neg = /^\(.*\)$/.test(s) || /^[-−]/.test(s);
+  s = s.replace(/^\(|\)$/g, "").replace(/^[-−]/, "").replace(/^Rp\s*/i, "").trim();
+  var kali = 1;
+  var m = s.match(/\s*(rb|ribu|jt|juta|M|miliar|T|triliun)\s*$/);
+  if (m) {
+    var u = m[1].toLowerCase();
+    kali = (u === "rb" || u === "ribu") ? 1e3 : (u === "jt" || u === "juta") ? 1e6
+         : (u === "t" || u === "triliun") ? 1e12 : 1e9;
+    s = s.slice(0, m.index);
+  }
+  var persen = /%\s*$/.test(s);
+  if (persen) s = s.replace(/%\s*$/, "");
+  s = s.trim().replace(/\./g, "").replace(/,/g, ".");
+  if (!/^\d*\.?\d+$/.test(s)) return null;
+  var v = parseFloat(s);
+  if (!isFinite(v)) return null;
+  return { v: (neg ? -1 : 1) * v * kali, persen: persen };
+}
+
+function rupiah(v) {
+  var a = Math.abs(v), s = v < 0 ? "-" : "";
+  if (a >= 1e12) return s + "Rp " + ringkas(a / 1e12) + " T";
+  if (a >= 1e9)  return s + "Rp " + ringkas(a / 1e9) + " M";
+  if (a >= 1e6)  return s + "Rp " + ringkas(a / 1e6) + " jt";
+  return s + "Rp " + Math.round(a).toLocaleString("id-ID");
+}
+function ringkas(x) { return x.toLocaleString("id-ID", { maximumFractionDigits: 2 }); }
+function jumlah(v, uang) { return uang ? rupiah(v) : ringkas(v); }
+function pct(x) { return ringkas(x) + "%"; }
+
+/* ---------- membaca tabel di layar ---------- */
+function bacaTabel(tab) {
+  var th = [].slice.call(tab.querySelectorAll("thead th")).map(function (x) { return x.textContent.trim(); });
+  if (!th.length) return null;
+  var trs = [].slice.call(tab.querySelectorAll("tbody tr")).filter(function (tr) {
+    return !tr.classList.contains("tot") && tr.children.length >= th.length - 1;
+  });
+  if (trs.length < 2) return null;
+  var data = trs.map(function (tr) {
+    return [].slice.call(tr.children).map(function (td) { return td.textContent.trim(); });
+  });
+  var judul = "";
+  var kotak = tab.closest(".panel");
+  if (kotak) { var h = kotak.querySelector("h2,h3"); if (h) judul = h.textContent.trim(); }
+  return { th: th, data: data, judul: judul };
+}
+
+var BULAN = /^(jan|feb|mar|apr|mei|jun|jul|ags|agu|agt|sep|okt|nov|des)[a-z]*['\s]*\d{0,4}$/i;
+
+function jenisTabel(t) {
+  var h0 = (t.th[0] || "").toLowerCase();
+  if (h0 === "") return "detail";                        /* tabel rincian bernomor */
+  if (/^(bulan|periode|tanggal|hari ke)$/.test(h0)) return "waktu";
+  var sisa = t.th.slice(1).filter(Boolean);
+  var cocok = sisa.filter(function (h) { return BULAN.test(h.replace(/\s+/g, "")); }).length;
+  if (sisa.length >= 4 && cocok >= sisa.length * 0.7) return "matriks";
+  return "dimensi";
+}
+
+/* kolom mana yang paling layak dianalisa */
+var PRIORITAS = [/nilai|omset|penerimaan|pendapatan/i, /keluar|biaya|beban/i,
+                 /skor|rata-rata/i, /reach|posting/i, /pesanan|qty|orang|retur|jumlah/i];
+
+function kolomAngka(t) {
+  var hasil = [];
+  for (var c = 1; c < t.th.length; c++) {
+    var isi = [], uang = 0, persen = 0;
+    for (var r = 0; r < t.data.length; r++) {
+      var sel = t.data[r][c];
+      var a = angka(sel);
+      if (a) { isi.push(a.v); if (a.persen) persen++; if (/Rp/.test(sel || "")) uang++; }
+      else isi.push(null);
+    }
+    var ada = isi.filter(function (x) { return x !== null; }).length;
+    if (ada >= Math.max(2, t.data.length * 0.6)) {
+      hasil.push({ c: c, nama: t.th[c], isi: isi, uang: uang > isi.length / 2, persen: persen > isi.length / 2 });
+    }
+  }
+  return hasil;
+}
+
+function pilihKolom(kols) {
+  var pakai = kols.filter(function (k) { return !k.persen; });
+  if (!pakai.length) pakai = kols;
+  for (var i = 0; i < PRIORITAS.length; i++) {
+    var k = pakai.filter(function (x) { return PRIORITAS[i].test(x.nama); })[0];
+    if (k) return k;
+  }
+  return pakai.slice().sort(function (a, b) { return total(b.isi) - total(a.isi); })[0];
+}
+function total(xs) { return xs.reduce(function (s, x) { return s + (x || 0); }, 0); }
+
+/* ---------- analisa vertikal: komposisi ---------- */
+function vertikal(t, kol) {
+  var pos = [];
+  for (var r = 0; r < t.data.length; r++) {
+    var v = kol.isi[r];
+    if (v && v > 0) pos.push({ nama: t.data[r][0] || "—", v: v });
+  }
+  if (pos.length < 2) return null;
+  var tot = total(pos.map(function (p) { return p.v; }));
+  if (!tot) return null;
+  pos.sort(function (a, b) { return b.v - a.v; });
+  pos.forEach(function (p) { p.s = p.v / tot * 100; });
+
+  var jalan = 0, pareto = 0;
+  for (var i = 0; i < pos.length; i++) { jalan += pos[i].s; if (jalan >= 80) { pareto = i + 1; break; } }
+  if (!pareto) pareto = pos.length;
+
+  var tiga = pos.slice(0, 3).reduce(function (s, p) { return s + p.s; }, 0);
+  var vonis = pos[0].s >= 60 ? "sangat terkonsentrasi — hampir semua bertumpu pada satu titik"
+            : tiga >= 80 ? "terkonsentrasi pada segelintir penyumbang"
+            : pos.length >= 6 && tiga <= 50 ? "menyebar cukup rata"
+            : "cukup berimbang";
+
+  return {
+    kolom: kol.nama, total: tot, uang: kol.uang, baris: pos, pareto: pareto,
+    kalimat: "<b>" + lolos(pos[0].nama) + "</b> menyumbang " + pct(pos[0].s) + " dari total " +
+      jumlah(tot, kol.uang) + ". Tiga teratas " + pct(tiga) + ", dan " + pareto + " dari " +
+      pos.length + " baris sudah menutup 80% — komposisinya " + vonis + "."
+  };
+}
+
+/* ---------- analisa horizontal: pergerakan antar periode ---------- */
+function horizontal(t, jenis) {
+  var label = [], seri = [], uang = false, nama = "";
+  if (jenis === "matriks") {
+    var kols = kolomAngka(t);
+    if (kols.length < 3) return null;
+    nama = "Total " + (t.judul || "semua baris");
+    kols.forEach(function (k) {
+      label.push(k.nama);
+      seri.push(total(k.isi));
+      if (k.uang) uang = true;
+    });
+  } else {
+    var kol = pilihKolom(kolomAngka(t));
+    if (!kol) return null;
+    nama = kol.nama; uang = kol.uang;
+    for (var r = 0; r < t.data.length; r++) {
+      if (kol.isi[r] === null) continue;
+      label.push(t.data[r][0] || "—");
+      seri.push(kol.isi[r]);
+    }
+  }
+  if (seri.length < 3) return null;
+
+  var n = seri.length, akhir = seri[n - 1], sebelum = seri[n - 2];
+  var d = akhir - sebelum, dp = sebelum ? d / Math.abs(sebelum) * 100 : null;
+
+  var yoy = null;
+  if (n >= 13 && seri[n - 13]) yoy = (akhir - seri[n - 13]) / Math.abs(seri[n - 13]) * 100;
+
+  var t3 = seri.slice(-3), s3 = seri.slice(-6, -3);
+  var rt3 = total(t3) / t3.length, rs3 = s3.length ? total(s3) / s3.length : null;
+  var laju = (rs3 && rs3 !== 0) ? (rt3 - rs3) / Math.abs(rs3) * 100 : null;
+
+  var maks = 0, min = 0;
+  for (var i = 1; i < n; i++) { if (seri[i] > seri[maks]) maks = i; if (seri[i] < seri[min]) min = i; }
+
+  var arah = dp === null ? "" : dp >= 0 ? "naik" : "turun";
+  var kal = "Periode terakhir (<b>" + lolos(label[n - 1]) + "</b>) " +
+    (dp === null ? "tercatat " + jumlah(akhir, uang)
+      : "<span class='vh-" + arah + "'>" + arah + " " + pct(Math.abs(dp)) + "</span> dibanding " +
+        lolos(label[n - 2]) + ", dari " + jumlah(sebelum, uang) + " ke " + jumlah(akhir, uang)) + ".";
+  if (yoy !== null) kal += " Dibanding periode yang sama setahun lalu <span class='vh-" +
+    (yoy >= 0 ? "naik" : "turun") + "'>" + (yoy >= 0 ? "naik" : "turun") + " " + pct(Math.abs(yoy)) + "</span>.";
+  if (laju !== null) kal += " Rata-rata 3 periode terakhir " +
+    (laju >= 0 ? "lebih tinggi " : "lebih rendah ") + pct(Math.abs(laju)) + " dari 3 periode sebelumnya.";
+  kal += " Puncaknya " + lolos(label[maks]) + " (" + jumlah(seri[maks], uang) + "), terendah " +
+    lolos(label[min]) + " (" + jumlah(seri[min], uang) + ").";
+
+  var dasar = seri[0] || 1;
+  return {
+    kolom: nama, uang: uang, label: label, seri: seri,
+    indeks: seri.map(function (v) { return v / Math.abs(dasar) * 100; }),
+    kalimat: kal
+  };
+}
+
+/* ---------- menggambar ---------- */
+function lolos(s) {
+  return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+  });
+}
+
+function panelVertikal(a) {
+  if (!a) return "";
+  var atas = a.baris.slice(0, 8), sisa = a.baris.slice(8);
+  if (sisa.length) atas = atas.concat([{ nama: sisa.length + " baris lainnya",
+    v: total(sisa.map(function (p) { return p.v; })),
+    s: sisa.reduce(function (s, p) { return s + p.s; }, 0) }]);
+  var mx = Math.max.apply(null, atas.map(function (p) { return p.s; }));
+  var isi = atas.map(function (p) {
+    return "<div class='vh-baris'><span class='vh-nama' title='" + lolos(p.nama) + "'>" + lolos(p.nama) +
+      "</span><span class='vh-rel'><i style='width:" + (p.s / mx * 100).toFixed(1) + "%'></i></span>" +
+      "<span class='vh-num'>" + pct(p.s) + " · " + jumlah(p.v, a.uang) + "</span></div>";
+  }).join("");
+  return "<div class='panel'><div class='vh-kep'><span class='vh-tag'>Vertikal</span><h3>Komposisi</h3></div>" +
+    "<div class='vh-ket'>Porsi tiap baris terhadap total <b>" + lolos(a.kolom) + "</b> — " +
+    jumlah(a.total, a.uang) + ".</div>" + isi +
+    "<div class='vh-sim'>" + a.kalimat + "</div></div>";
+}
+
+function panelHorizontal(a) {
+  if (!a) return "";
+  var n = a.seri.length, ambil = Math.min(n, 12), mulai = n - ambil;
+  var mx = Math.max.apply(null, a.seri.slice(mulai).map(Math.abs)) || 1;
+  var isi = "";
+  for (var i = mulai; i < n; i++) {
+    var sb = i > 0 ? a.seri[i - 1] : null;
+    var dd = (sb && sb !== 0) ? (a.seri[i] - sb) / Math.abs(sb) * 100 : null;
+    isi += "<div class='vh-baris'><span class='vh-nama'>" + lolos(a.label[i]) + "</span>" +
+      "<span class='vh-rel'><i class='" + (dd !== null && dd < 0 ? "turun" : "") + "' style='width:" +
+      (Math.abs(a.seri[i]) / mx * 100).toFixed(1) + "%'></i></span>" +
+      "<span class='vh-num'>" + jumlah(a.seri[i], a.uang) +
+      (dd === null ? "" : " · <span class='vh-" + (dd >= 0 ? "naik" : "turun") + "'>" +
+        (dd >= 0 ? "+" : "−") + pct(Math.abs(dd)) + "</span>") + "</span></div>";
+  }
+  return "<div class='panel'><div class='vh-kep'><span class='vh-tag'>Horizontal</span><h3>Pergerakan</h3></div>" +
+    "<div class='vh-ket'>Perubahan <b>" + lolos(a.kolom) + "</b> antar periode" +
+    (n > ambil ? " — " + ambil + " periode terakhir dari " + n : "") + ".</div>" + isi +
+    "<div class='vh-sim'>" + a.kalimat + "</div></div>";
+}
+
+/* ---------- Analisa AI ---------- */
+function markdown(t) {
+  var baris = String(t).split("\n"), out = [], ul = false;
+  function tutup() { if (ul) { out.push("</ul>"); ul = false; } }
+  baris.forEach(function (b) {
+    var s = b.trim();
+    if (!s) { tutup(); return; }
+    s = lolos(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
+    var h = s.match(/^#{2,4}\s*(.+)$/);
+    if (h) { tutup(); out.push("<h4>" + h[1] + "</h4>"); return; }
+    var li = s.match(/^(?:[-*•]|\d+\.)\s+(.+)$/);
+    if (li) { if (!ul) { out.push("<ul>"); ul = true; } out.push("<li>" + li[1] + "</li>"); return; }
+    tutup(); out.push("<p>" + s + "</p>");
+  });
+  tutup();
+  return out.join("");
+}
+
+function bahanAI(sec, judul) {
+  var kpi = [].slice.call(sec.querySelectorAll(".kpi")).map(function (k) {
+    return { label: txt(k, ".l"), nilai: txt(k, ".v"), catatan: txt(k, ".n") };
+  });
+  var tabel = [];
+  [].slice.call(sec.querySelectorAll("table")).forEach(function (tb) {
+    var t = bacaTabel(tb);
+    if (!t || jenisTabel(t) === "detail") return;
+    tabel.push({ judul: t.judul, kolom: t.th, baris: t.data.slice(0, 40) });
+  });
+  return { halaman: judul, kpi: kpi, tabel: tabel };
+}
+function txt(el, sel) { var x = el.querySelector(sel); return x ? x.textContent.trim() : ""; }
+
+/* halaman daftar rincian dan halaman kualitas data tidak punya tabel ringkas
+   yang layak dikomposisikan — lebih baik mengatakannya daripada memajang
+   persentase dari 50 baris pertama yang menyesatkan. */
+function panelKosong(adaTabel) {
+  return "<div class='panel'><div class='vh-kep'><span class='vh-tag'>Vertikal · Horizontal</span>" +
+    "<h3>Tidak dihitung di halaman ini</h3></div><div class='vh-ket'>" +
+    (adaTabel
+      ? "Halaman ini menampilkan daftar rincian baris per baris, dan yang tampil hanya sebagian. " +
+        "Menghitung porsi atau pergerakan dari potongan itu akan menyesatkan — angkanya ada di halaman ringkasan modul ini."
+      : "Halaman ini tidak memuat tabel angka, jadi tidak ada yang bisa dikomposisikan atau dibandingkan antar periode.") +
+    " Analisa AI di bawah tetap bisa dipakai.</div></div>";
+}
+
+function panelAI() {
+  return "<div class='panel vh-ai'><div class='vh-kep'><span class='vh-tag'>AI</span><h3>Analisa AI</h3></div>" +
+    "<div class='vh-ket'>Gemini membaca angka yang sedang tampil di halaman ini — termasuk filter yang kamu pasang.</div>" +
+    "<button type='button' class='vh-btn'>Analisa halaman ini</button>" +
+    "<div class='vh-hasil'></div></div>";
+}
+
+function pasangAI(sec, judul, modul) {
+  var btn = sec.querySelector(".vh-ai .vh-btn");
+  var box = sec.querySelector(".vh-ai .vh-hasil");
+  if (!btn) return;
+  btn.addEventListener("click", async function () {
+    if (!VH.sb) { box.innerHTML = "<div class='vh-err'>Belum terhubung ke server.</div>"; return; }
+    btn.disabled = true;
+    var semula = btn.textContent;
+    btn.textContent = "Menganalisa…";
+    box.innerHTML = "";
+    try {
+      var res = await VH.sb.functions.invoke("analisa", {
+        body: { judul: judul, modul: modul, data: bahanAI(sec, judul) }
+      });
+      if (res.error) throw res.error;
+      var d = res.data || {};
+      if (d.error) throw new Error(d.error);
+      box.innerHTML = markdown(d.teks || "Tidak ada jawaban.");
+      btn.textContent = "Analisa ulang";
+    } catch (e) {
+      box.innerHTML = "<div class='vh-err'>Gagal: " + lolos(e.message || e) + "</div>";
+      btn.textContent = semula;
+    }
+    btn.disabled = false;
+  });
+}
+
+/* ---------- perakitan per halaman ---------- */
+function namaHalaman(id) {
+  var b = document.querySelector('.tabs button[data-p="' + id + '"]');
+  if (!b) return id;
+  var judul = b.textContent.trim(), grup = "";
+  var n = b.previousElementSibling;
+  while (n) { if (n.classList && n.classList.contains("grp")) { grup = n.textContent.trim(); break; } n = n.previousElementSibling; }
+  return { judul: judul, modul: grup };
+}
+
+/* sidik jari isi halaman — dipakai untuk tahu kapan hub menggambar ulang.
+   Blok analisa sendiri tidak memuat <table>, jadi pemasangannya tidak
+   mengubah sidik jari dan pengamat tidak memicu dirinya sendiri. */
+function sidik(sec) {
+  var p = [sec.querySelectorAll(".kpi").length];
+  [].slice.call(sec.querySelectorAll("table")).forEach(function (tb) {
+    var th = [].slice.call(tb.querySelectorAll("thead th")).map(function (x) { return x.textContent.trim(); });
+    var tr = tb.querySelectorAll("tbody tr");
+    var awal = tr[0] ? tr[0].textContent.trim().slice(0, 60) : "";
+    p.push(th.join("|") + "#" + tr.length + "#" + awal);
+  });
+  return p.join("~");
+}
+
+function susun(sec) {
+  if (!sec) return;
+  /* halaman yang belum pernah dibuka masih kosong — tunggu hub menggambarnya */
+  if (!sec.querySelector("table") && !sec.querySelector(".kpi") && !sec.querySelector(".panel")) return;
+
+  var cap = sidik(sec);
+  var lama = sec.querySelector(".vh-blok");
+  if (lama) {
+    if (lama.dataset.cap === cap) return;
+    lama.remove();
+  }
+
+  var id = sec.id.replace(/^p-/, "");
+  var nm = namaHalaman(id);
+
+  var kandidat = [];
+  [].slice.call(sec.querySelectorAll("table")).forEach(function (tb) {
+    var t = bacaTabel(tb);
+    if (!t) return;
+    var j = jenisTabel(t);
+    if (j === "detail") return;
+    t.jenis = j;
+    kandidat.push(t);
+  });
+
+  var av = null, ah = null;
+  var dim = kandidat.filter(function (t) { return t.jenis === "dimensi"; })[0];
+  var wkt = kandidat.filter(function (t) { return t.jenis === "waktu"; })[0];
+  var mtx = kandidat.filter(function (t) { return t.jenis === "matriks"; })[0];
+
+  var sumberV = dim || wkt || kandidat[0];
+  if (sumberV && sumberV.jenis !== "matriks") {
+    var kol = pilihKolom(kolomAngka(sumberV));
+    if (kol) av = vertikal(sumberV, kol);
+  }
+  if (wkt) ah = horizontal(wkt, "waktu");
+  else if (mtx) ah = horizontal(mtx, "matriks");
+
+  var html = "<div class='vh-blok' data-cap='" + lolos(cap) + "'>";
+  if (av || ah) html += "<div class='vh-duo'>" + panelVertikal(av) + panelHorizontal(ah) + "</div>";
+  else html += panelKosong(sec.querySelectorAll("table").length);
+  html += panelAI() + "</div>";
+
+  sec.insertAdjacentHTML("beforeend", html);
+  pasangAI(sec, nm.judul, nm.modul);
+}
+
+/* hub menggambar ulang section saat filter berubah atau data baru masuk;
+   pengamat di bawah memasang balik blok analisa tanpa perlu tahu kapan. */
+function awasi(sec) {
+  var tunda;
+  new MutationObserver(function () {
+    clearTimeout(tunda);
+    tunda = setTimeout(function () { susun(sec); }, 220);
+  }).observe(sec, { childList: true, subtree: true });
+}
+
+VH.pasang = function (sb) {
+  VH.sb = sb;
+  [].slice.call(document.querySelectorAll("section[id^='p-']")).forEach(function (sec) {
+    try { susun(sec); } catch (e) {}
+    awasi(sec);
+  });
+};
+})();
+</script>
+
 <!-- Gerbang login + jembatan data Supabase untuk hub Floral.id.
      Disisipkan oleh bangun_portal.py ke dalam hub.html apa adanya:
      tampilan hub tidak diubah sedikit pun, hanya sumber datanya yang diganti. -->
@@ -469,6 +914,8 @@ async function mulai(sesi) {
 
     gate.remove();
     window.__FL.bukaMcp(bikinMcp());
+    /* analisa vertikal/horizontal + tombol AI menempel sendiri di tiap halaman */
+    if (window.__VH) setTimeout(() => window.__VH.pasang(sb), 400);
 
     /* data baru dari Apps Script -> hub menggambar ulang sendiri */
     sb.channel("portal-langsung")
@@ -2440,25 +2887,10 @@ function pdfRapor_(p){
       ["Total",""].concat(KAT360.map(function(){ return ""; }))
         .concat([p.t==null?"-":f2_360(p.t), p.ts==null?"-":f2_360(p.ts)]));
 
-  /* ===== rincian tiap penilai ===== */
-  judul("Rincian nilai tiap penilai", "Dua butir per aspek, rata-ratanya, geseran kalibrasi penilai, dan nilai yang dipakai.");
-  var barisR=[];
-  ASP360.forEach(function(a){
-    var pilih=p.others.filter(function(o){ return o.adj && o.adj[a.kode]!=null; });
-    if(!pilih.length) return;
-    barisR.push({pita:a.nama, kanan:"nilai akhir "+(p.fin[a.kode]==null?"-":f2_360(p.fin[a.kode]))});
-    pilih.forEach(function(o){
-      var b1=num360(o[a.kode+"1"]), b2=num360(o[a.kode+"2"]);
-      barisR.push(["Penilai "+(N[o.Penilai+"|"+o.Kategori]||"?")+" · "+o.Kategori,
-                   b1==null?"-":String(b1), b2==null?"-":String(b2),
-                   o.raw[a.kode]==null?"-":f2_360(o.raw[a.kode]),
-                   o.delta? ((o.delta>0?"+":"")+f2_360(o.delta)) : "0,00",
-                   f2_360(o.adj[a.kode])]);
-    });
-  });
-  if(barisR.length)
-    tbl([{t:"Penilai",w:62},{t:"Butir 1",w:21,n:1},{t:"Butir 2",w:21,n:1},
-         {t:"Rata-rata",w:26,n:1},{t:"Kalibrasi",w:24,n:1},{t:"Dipakai",w:26,n:1,b:1}], barisR);
+  /* Rincian nilai per penilai sengaja TIDAK dicetak. Walau namanya sudah
+     disamarkan jadi "Penilai 3", dengan hanya 3-6 penilai per orang angkanya
+     gampang dicocokkan balik ke siapa — dan rapor ini dibagikan ke yang dinilai.
+     Nilai per aspek tetap ada di tabel di atas; di sini cukup rata-ratanya. */
 
   /* ===== contoh kejadian ===== */
   var contoh=[];
