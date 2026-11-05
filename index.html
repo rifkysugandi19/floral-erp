@@ -262,6 +262,137 @@ footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--line);font-si
   </div>
 </div>
 
+<!-- Tema Floral.id: sidebar maroon, hero KPI, kartu peringatan, ornamen bunga.
+     Bekerja di atas DOM hub tanpa mengubahnya — sebagian besar lewat penggantian
+     variabel CSS hub, jadi mode gelap ikut benar tanpa aturan ganda. -->
+<style>
+:root{
+  /* sidebar jadi maroon pekat; hub memakai variabel ini di semua tempat */
+  --side:#4b1324; --side-2:#6d1f39;
+  --side-ink:#ffffff; --side-mute:rgba(255,255,255,.62);
+  --side-line:rgba(255,255,255,.16); --side-hover:rgba(255,255,255,.10);
+  --ground:#fdf6f4;
+  --tema-hero-a:#5d1730; --tema-hero-b:#8d2447;
+}
+@media (prefers-color-scheme: dark){ :root{ --ground:#1b1013; } }
+
+/* ---------- lebar isi: jangan berhenti di 1240 dan menyisakan gurun di kanan ---------- */
+.wrap{max-width:min(1680px, 100%)}
+
+/* ---------- sidebar ---------- */
+aside.side{background:linear-gradient(170deg,var(--side-2),var(--side) 62%);position:relative;overflow:hidden}
+aside.side > *{position:relative;z-index:1}
+aside.side::after{content:"";position:absolute;left:-18%;bottom:-4%;width:150%;height:62%;
+  background:url("aset/daun-v.webp") left bottom/contain no-repeat;opacity:.30;z-index:0;pointer-events:none}
+aside.side .logo{background:rgba(255,255,255,.93);border-radius:16px;padding:14px 16px;
+  box-shadow:0 8px 24px rgba(0,0,0,.18)}
+aside.side .side-lbl{color:rgba(255,255,255,.55);letter-spacing:.2em}
+.tabs .grp{color:rgba(255,255,255,.52);letter-spacing:.17em;font-size:10.5px}
+.tabs button{border-radius:12px;color:rgba(255,255,255,.80);font-weight:500}
+.tabs button:hover{background:rgba(255,255,255,.10);color:#fff}
+.tabs button[aria-selected="true"]{
+  background:linear-gradient(100deg,#f2b6c8,#e294ae);color:#4b1324;font-weight:650;
+  box-shadow:0 6px 18px rgba(0,0,0,.22)}
+.side-foot, .side-akun{color:var(--side-mute);border-top-color:var(--side-line)}
+.side-foot b, .side-akun b{color:#fff}
+.side-akun button{background:rgba(255,255,255,.14);color:#fff}
+.side-akun button:hover{background:rgba(255,255,255,.24)}
+
+/* ---------- masthead ---------- */
+header.masthead{position:relative;overflow:hidden}
+header.masthead::after{content:"";position:absolute;right:-30px;top:16px;width:min(44%,540px);height:180px;
+  background:url("aset/daun-h.webp") right top/contain no-repeat;opacity:.62;pointer-events:none}
+header.masthead .mast-text{position:relative;z-index:1;max-width:min(60ch,62%)}
+.tema-stamp{position:absolute;right:0;top:2px;z-index:2;font:500 12.5px var(--body);color:var(--ink-2);
+  display:flex;align-items:center;gap:7px;background:var(--surface);
+  border:1px solid var(--line);border-radius:99px;padding:6px 13px}
+.tema-stamp svg{width:14px;height:14px;opacity:.75}
+@media (max-width:860px){
+  header.masthead::after{display:none}
+  header.masthead .mast-text{max-width:none}
+  .tema-stamp{position:static;margin-top:8px}
+}
+
+/* ---------- KPI: yang pertama jadi hero, yang bertanda jadi ubin peringatan ---------- */
+@media (min-width:900px){
+  .kpis{grid-template-columns:repeat(auto-fill,minmax(228px,1fr))}
+  .kpis .kpi:first-child{grid-column:span 2}
+}
+.kpi{border-radius:16px}
+.kpis .kpi:first-child{
+  background:linear-gradient(104deg,var(--tema-hero-a),var(--tema-hero-b));
+  border-color:transparent;color:#fff;position:relative;overflow:hidden;min-height:132px}
+.kpis .kpi:first-child::after{content:"";position:absolute;right:-18px;bottom:-26px;width:232px;height:170px;
+  background:url("aset/bunga.webp") right bottom/contain no-repeat;opacity:.95;pointer-events:none}
+.kpis .kpi:first-child .l{color:rgba(255,255,255,.72);letter-spacing:.14em}
+.kpis .kpi:first-child .v{color:#fff;font-size:clamp(30px,3.1vw,46px);line-height:1.05}
+.kpis .kpi:first-child .n{color:rgba(255,255,255,.78)}
+
+/* Mockup memberi ubin ini tanda panah. Tidak dipakai: kartunya tidak bisa
+   diklik, jadi panah cuma janji palsu. Ornamen daun bawaan hub dibiarkan. */
+.kpi.warn{background:var(--warn-soft);border-color:transparent}
+.kpi.bad{background:var(--crit-soft);border-color:transparent}
+.kpi.warn .v{color:var(--warn)} .kpi.bad .v{color:var(--crit)}
+
+/* tombol Reset jadi pil merah muda, bukan blok maroon */
+.filters button{background:var(--accent-soft);color:var(--brand);border:0;border-radius:11px;font-weight:600}
+.filters button:hover{filter:brightness(.96)}
+
+/* ---------- panel & tabel ---------- */
+.panel{border-radius:18px}
+.panel h2, .panel h3{letter-spacing:-.01em}
+table tbody tr.tot td, table tfoot td{background:var(--accent-soft);font-weight:650}
+</style>
+
+<script>
+(function () {
+"use strict";
+/* Cap waktu dipindah ke kanan atas seperti mockup. Teksnya diambil dari
+   keterangan sumber data milik hub, jadi tidak ada sumber kebenaran kedua. */
+var IKON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+  'stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';
+
+var BLN = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Ags","Sep","Okt","Nov","Des"];
+
+/* "Feed dihitung 2026-11-03 21:55 WIB · dibaca 11.49" -> "Diperbarui 3 Nov 2026 · 21.55 WIB" */
+function rapi(s) {
+  var m = String(s).match(/(\d{4})-(\d{2})-(\d{2})[\sT]+(\d{1,2})[.:](\d{2})/);
+  if (!m) return String(s).replace(/^Feed dihitung\s*/i, "Diperbarui ");
+  return "Diperbarui " + (+m[3]) + " " + BLN[(+m[2]) - 1] + " " + m[1] +
+         " · " + m[4] + "." + m[5] + " WIB";
+}
+
+function pasang() {
+  var mast = document.querySelector("header.masthead");
+  if (!mast) return;
+  var foot = document.querySelector(".side-foot");
+  if (!foot) return;
+  var baris = (foot.innerText || "").split("\n").map(function (s) { return s.trim(); })
+    .filter(function (s) { return /dihitung|diperbarui|WIB/i.test(s); });
+  if (!baris.length) return;
+  var teks = rapi(baris[0]);
+  var el = mast.querySelector(".tema-stamp");
+  if (!el) {
+    el = document.createElement("div");
+    el.className = "tema-stamp";
+    el.innerHTML = IKON + "<span></span>";
+    mast.appendChild(el);
+  }
+  var sp = el.querySelector("span");
+  if (sp.textContent !== teks) sp.textContent = teks;
+}
+
+function mulai() {
+  pasang();
+  var foot = document.querySelector(".side-foot");
+  if (foot) new MutationObserver(pasang).observe(foot, { childList: true, subtree: true, characterData: true });
+}
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mulai);
+else setTimeout(mulai, 300);
+window.__TEMA = { pasang: pasang };
+})();
+</script>
+
 <!-- Analisa vertikal + horizontal + tombol Analisa AI untuk tiap halaman hub.
      Disisipkan oleh bangun_portal.py. Tidak menyentuh kode hub sama sekali:
      angkanya dibaca dari tabel yang sudah digambar hub di layar, jadi apa pun
@@ -1064,6 +1195,9 @@ function saringHalaman() {
 function pasangAkun(profil, email) {
   const sisi = document.querySelector("aside.side");
   if (!sisi) return;
+  /* mulai() bisa jalan lebih dari sekali (getSession lalu SIGNED_IN), dan dulu
+     tiap kali menumpuk satu kartu akun baru di sidebar */
+  sisi.querySelectorAll(".side-akun").forEach(el => el.remove());
   const d = document.createElement("div");
   d.className = "side-akun";
   const peran = profil.role === "owner" ? "Owner · semua modul" : (profil.role || "pending");
