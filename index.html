@@ -273,6 +273,15 @@ footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--line);font-si
   --side-line:rgba(255,255,255,.16); --side-hover:rgba(255,255,255,.10);
   --ground:#fdf6f4;
   --tema-hero-a:#5d1730; --tema-hero-b:#8d2447;
+
+  /* Kontras dinaikkan ke ambang teks kecil WCAG (4,5:1). Nilai lama:
+     muted 3,73 · warn di atas warn-soft 2,99 · crit di atas crit-soft 3,57.
+     Yang paling parah justru ubin peringatan — yang semestinya paling
+     menonjol malah paling sulit dibaca. */
+  --muted:#7b636c;      /* 5,2:1 di atas krem */
+  --warn:#8a5600;       /* 5,4:1 di atas warn-soft */
+  --crit:#b23227;       /* 4,9:1 di atas crit-soft */
+  --brand-ink:#a8395c;  /* merah muda untuk teks, bukan untuk hiasan */
 }
 @media (prefers-color-scheme: dark){ :root{ --ground:#1b1013; } }
 
@@ -372,6 +381,32 @@ header.masthead h1{font-size:clamp(30px,3.2vw,46px);line-height:1.08;margin:4px 
 .panel{border-radius:18px}
 .panel h2, .panel h3{letter-spacing:-.01em}
 table tbody tr.tot td, table tfoot td{background:var(--accent-soft);font-weight:650}
+
+/* angka: tabular-nums dari font teks. Monospace tipis terbaca teknis dan
+   ringkih untuk nilai uang besar; tabular-nums tetap rata ke bawah. */
+table td.n, .vh-num{font-family:var(--body);font-variant-numeric:tabular-nums;
+  font-weight:600;letter-spacing:0}
+table td.n{font-size:13.5px}
+.filters button{color:var(--brand-ink)}
+.vh-tag{color:var(--brand-ink)}
+
+/* satu panel utama per halaman diberi bobot supaya ada titik masuk */
+section.page > .panel:first-of-type{border-color:#e9cdd5;box-shadow:0 10px 30px rgba(120,40,70,.07)}
+section.page > .panel:first-of-type > h2,
+section.page > .panel:first-of-type > h3{font-size:20px}
+
+/* batang bertanda: arah diberi warna, bukan disembunyikan */
+.mbar span.turun{background:var(--crit)}
+.mbar span.naik{background:#2f7d4a}
+
+/* kartu Analisa AI berdiri sendiri di atas halaman */
+.vh-ai.vh-atas{margin:0 0 16px}
+
+/* legenda tahun untuk grafik batang lintas tahun */
+.vh-legenda{display:flex;flex-wrap:wrap;gap:14px;margin:2px 0 12px;
+  font:600 11.5px var(--body);color:var(--ink-2);letter-spacing:.02em}
+.vh-legenda span{display:inline-flex;align-items:center;gap:6px}
+.vh-legenda i{width:11px;height:11px;border-radius:3px;flex:none}
 </style>
 
 <script>
@@ -535,8 +570,12 @@ function angka(t) {
   if (t == null) return null;
   var s = String(t).replace(/ /g, " ").trim();
   if (!s || /^[—–-]+$/.test(s)) return null;
-  var neg = /^\(.*\)$/.test(s) || /^[-−]/.test(s);
-  s = s.replace(/^\(|\)$/g, "").replace(/^[-−]/, "").replace(/^Rp\s*/i, "").trim();
+  /* "Rp" dibuang LEBIH DULU: tanda minusnya ada di belakangnya
+     ("Rp -302,5 jt"). Urutan terbalik membuat seluruh nilai uang negatif
+     gagal diurai dan diam-diam hilang dari analisa. */
+  var neg = /^\(.*\)$/.test(s);
+  s = s.replace(/^\(|\)$/g, "").replace(/^Rp\s*/i, "").trim();
+  if (/^[-−]/.test(s)) { neg = true; s = s.replace(/^[-−]\s*/, ""); }
   var kali = 1;
   var m = s.match(/\s*(rb|ribu|jt|juta|M|miliar|T|triliun)\s*$/);
   if (m) {
@@ -685,20 +724,44 @@ function pilihKolom(kols, untukKontribusi) {
     if (!pakai.length) return null;
   }
   if (!pakai.length) pakai = kols;
-  for (var i = 0; i < PRIORITAS.length; i++) {
-    var k = pakai.filter(function (x) { return PRIORITAS[i].test(x.nama); })[0];
-    if (k) return k;
-  }
-  return pakai.slice().sort(function (a, b) { return total(b.isi) - total(a.isi); })[0];
+  return urutkanKolom(pakai)[0] || null;
+}
+
+/* Kandidat kolom menurut prioritas — dipakai berurutan, karena pilihan
+   pertama bisa gagal (mis. kolom "Keluar" yang isinya negatif semua pada
+   tabel yang juga punya kolom "Masuk"). */
+function urutkanKolom(kols) {
+  var sisa = kols.slice(), urut = [];
+  PRIORITAS.forEach(function (re) {
+    sisa = sisa.filter(function (x) {
+      if (re.test(x.nama)) { urut.push(x); return false; }
+      return true;
+    });
+  });
+  sisa.sort(function (a, b) { return Math.abs(total(b.isi)) - Math.abs(total(a.isi)); });
+  return urut.concat(sisa);
 }
 function total(xs) { return xs.reduce(function (s, x) { return s + (x || 0); }, 0); }
 
 /* ---------- analisa vertikal: komposisi ---------- */
 function vertikal(t, kol) {
-  var pos = [];
+  var pos = [], neg = 0;
   for (var r = 0; r < t.data.length; r++) {
     var v = kol.isi[r];
-    if (v && v > 0) pos.push({ nama: t.data[r][0] || "—", v: v });
+    if (!v) continue;
+    if (v > 0) pos.push({ nama: t.data[r][0] || "—", v: v });
+    else neg++;
+  }
+  /* kolom arus keluar isinya negatif semua — porsinya tetap bermakna,
+     dihitung dari besarannya. Kolom bertanda campur dilewati: membagi
+     pemasukan dan pengeluaran dalam satu lingkaran tidak berarti apa-apa. */
+  if (!pos.length && neg >= 2) {
+    for (var q = 0; q < t.data.length; q++) {
+      var w = kol.isi[q];
+      if (w && w < 0) pos.push({ nama: t.data[q][0] || "—", v: -w });
+    }
+  } else if (pos.length && neg) {
+    return null;
   }
   if (pos.length < 2) return null;
   var tot = total(pos.map(function (p) { return p.v; }));
@@ -982,6 +1045,95 @@ function pasangAI(sec, judul, modul) {
   });
 }
 
+/* ---------- batang bertanda diberi arah ----------
+   Hub menggambar batang dari nilai mutlak dan tidak memberi lebar sama sekali
+   untuk nilai negatif, padahal keterangan panelnya menjanjikan "batang merah".
+   Akibatnya bulan yang kasnya berkurang — yang paling perlu dilihat — hilang
+   dari grafik. Di sini panel yang memang punya nilai negatif digambar ulang:
+   panjang dari nilai mutlak, warna dari tandanya. */
+function warnaiBatang(sec) {
+  [].slice.call(sec.querySelectorAll(".panel")).forEach(function (panel) {
+    var bar = [].slice.call(panel.querySelectorAll(".mbar"));
+    if (!bar.length) return;
+    var data = [];
+    bar.forEach(function (b) {
+      var tr = b.closest("tr");
+      if (!tr) return;
+      var sel = tr.querySelector("td.n:last-of-type") || tr.querySelector("td.n");
+      if (!sel) return;
+      var a = angka(sel.textContent);
+      if (a && !a.persen) data.push({ b: b, v: a.v });
+    });
+    if (!data.length) return;
+    var adaNegatif = data.some(function (d) { return d.v < 0; });
+    if (!adaNegatif) return;
+    var mx = data.reduce(function (m, d) { return Math.max(m, Math.abs(d.v)); }, 0) || 1;
+    data.forEach(function (d) {
+      var sp = d.b.querySelector("span");
+      if (!sp) sp = d.b.appendChild(document.createElement("span"));
+      sp.style.width = (Math.abs(d.v) / mx * 100).toFixed(1) + "%";
+      sp.className = d.v < 0 ? "turun" : "naik";
+    });
+    panel.dataset.vhArah = "1";
+  });
+}
+
+/* ---------- deret lintas tahun diberi warna per tahun ----------
+   Batangnya tetap mendatar. Pada panel yang membentang lebih dari satu
+   tahun, tiap tahun dapat satu warna dari gradasi merah muda ke maroon —
+   tua berarti terbaru — supaya batas tahunnya terbaca tanpa menghitung
+   baris. Panel bertanda (hijau/merah) dilewati: satu batang tidak boleh
+   memikul dua arti sekaligus. */
+var RAMPA = ["#f3bfcd", "#e8a2b8", "#d0688a", "#b2436b", "#8d2447", "#6b1631"];
+
+function warnaTahun(i, n) {
+  if (n <= 1) return RAMPA[2];
+  var p = i / (n - 1) * (RAMPA.length - 1);
+  return RAMPA[Math.round(p)];
+}
+
+function warnaiTahun(sec) {
+  [].slice.call(sec.querySelectorAll(".panel")).forEach(function (panel) {
+    var lama = panel.querySelector(".vh-legenda");
+    if (lama) lama.remove();
+    if (panel.dataset.vhArah === "1") return;
+
+    var bar = [].slice.call(panel.querySelectorAll(".mbar"));
+    if (bar.length < 4) return;
+    var baris = [];
+    bar.forEach(function (b) {
+      var tr = b.closest("tr");
+      if (!tr || !tr.cells.length) return;
+      var k = kunciWaktu(tr.cells[0].textContent);
+      if (k === null || k < 19000000) return;
+      baris.push({ b: b, th: Math.floor(k / 10000) });
+    });
+    if (baris.length < bar.length * 0.8) return;
+
+    var tahun = [];
+    baris.forEach(function (r) { if (tahun.indexOf(r.th) < 0) tahun.push(r.th); });
+    if (tahun.length < 2) return;
+    tahun.sort(function (a, b) { return a - b; });
+
+    baris.forEach(function (r) {
+      var sp = r.b.querySelector("span");
+      if (sp) sp.style.background = warnaTahun(tahun.indexOf(r.th), tahun.length);
+    });
+
+    var leg = document.createElement("div");
+    leg.className = "vh-legenda";
+    leg.innerHTML = tahun.map(function (t, i) {
+      return "<span><i style='background:" + warnaTahun(i, tahun.length) + "'></i>" + t + "</span>";
+    }).join("");
+    /* insertAdjacentElement, bukan insertBefore: tabelnya sering terbungkus
+       .tblwrap sehingga bukan anak langsung panel */
+    var sub = panel.querySelector(".sub"), kep = panel.querySelector("h2, h3");
+    if (sub) sub.insertAdjacentElement("afterend", leg);
+    else if (kep) kep.insertAdjacentElement("afterend", leg);
+    else panel.insertAdjacentElement("afterbegin", leg);
+  });
+}
+
 /* ---------- perakitan per halaman ---------- */
 function namaHalaman(id) {
   var b = document.querySelector('.tabs button[data-p="' + id + '"]');
@@ -1051,15 +1203,24 @@ function susun(sec) {
         if (ay) panel.push(panelYoY(ay, t.judul));
       }
     } else {
-      var kol = pilihKolom(kolomAngka(t), true);
       /* Tabel yang barisnya orang bukan komposisi, melainkan daftar nama.
          Di modul HR itu sekaligus soal kerahasiaan: porsi per penilai
          membeberkan siapa menilai berapa banyak. */
-      if (/^(nama|penilai|karyawan|pegawai|orang)$/i.test(t.th[0] || "")) kol = null;
-      /* Uang selalu layak dibagi jadi porsi; cacahan hanya kalau tabelnya
-         memang rincian berkategori, bukan daftar panjang. */
-      if (kol && !kol.uang && t.data.length > 20) kol = null;
-      var av = kol ? vertikal(t, kol) : null;
+      var av = null;
+      if (!/^(nama|penilai|karyawan|pegawai|orang)$/i.test(t.th[0] || "")) {
+        var kandidat = urutkanKolom(kolomAngka(t).filter(function (k) {
+          if (k.persen || TAKJUMLAH.test(k.nama)) return false;
+          var v = k.isi.filter(function (x) { return x !== null; });
+          var pecahan = v.some(function (x) { return x % 1 !== 0; });
+          var maks = v.reduce(function (m, x) { return Math.max(m, Math.abs(x)); }, 0);
+          if (!k.uang && pecahan && maks <= 5) return false;   /* skala 1-5 */
+          /* Uang selalu layak dibagi jadi porsi; cacahan hanya kalau tabelnya
+             rincian berkategori, bukan daftar panjang. */
+          if (!k.uang && t.data.length > 20) return false;
+          return true;
+        }));
+        for (var c = 0; c < kandidat.length && !av; c++) av = vertikal(t, kandidat[c]);
+      }
       if (av) panel.push(panelVertikal(av, t.judul));
     }
   });
@@ -1078,14 +1239,27 @@ function susun(sec) {
   var html = "<div class='vh-blok' data-cap='" + lolos(cap) + "'>";
   if (panel.length) html += "<div class='vh-duo'>" + panel.join("") + "</div>";
   else html += panelKosong(sec.querySelectorAll("table").length);
-  if (!aiLama) html += panelAI();
   html += "</div>";
-
   sec.insertAdjacentHTML("beforeend", html);
-  var blok = sec.querySelector(".vh-blok");
-  if (aiLama) blok.appendChild(aiLama);
-  else pasangAI(sec, nm.judul, nm.modul);
-  AIBOX.set(sec, blok.querySelector(".vh-ai"));
+
+  /* Kartu AI di ATAS halaman, bukan di kaki: supaya terlihat tanpa menggulir.
+     Panel Kontribusi/Pertumbuhan/YoY tetap di bawah, menempel pada tabel
+     yang mereka jelaskan. */
+  var ai = aiLama;
+  if (!ai) {
+    var bung = document.createElement("div");
+    bung.innerHTML = panelAI();
+    ai = bung.firstChild;
+  }
+  ai.classList.add("vh-atas");
+  var kpis = sec.querySelector(".kpis");
+  if (kpis && kpis.parentElement === sec) kpis.insertAdjacentElement("afterend", ai);
+  else sec.insertBefore(ai, sec.firstChild);
+  if (!aiLama) pasangAI(sec, nm.judul, nm.modul);
+  AIBOX.set(sec, ai);
+
+  warnaiBatang(sec);
+  warnaiTahun(sec);
 }
 
 /* hub menggambar ulang section saat filter berubah atau data baru masuk;
