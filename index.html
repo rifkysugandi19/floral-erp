@@ -359,10 +359,56 @@ function bacaTabel(tab) {
 
 var BULAN = /^(jan|feb|mar|apr|mei|jun|jul|ags|agu|agt|sep|okt|nov|des)[a-z]*['\s]*\d{0,4}$/i;
 
+/* Label periode -> angka yang bisa diurutkan. Dipakai untuk memastikan
+   tabelnya memang deret waktu dan bukan "10 hari tersibuk" yang diurut
+   dari yang terbesar: menghitung pertumbuhan dari daftar peringkat
+   menghasilkan angka yang kelihatan benar padahal tidak berarti apa-apa. */
+var NAMABLN = { jan:1, feb:2, mar:3, apr:4, mei:5, may:5, jun:6, jul:7,
+                ags:8, agu:8, agt:8, aug:8, sep:9, okt:10, oct:10, nov:11, des:12, dec:12 };
+
+function kunciWaktu(s) {
+  var t = String(s == null ? "" : s).trim().toLowerCase();
+  if (!t) return null;
+  var m = t.match(/^(\d{4})-(\d{1,2})(?:-(\d{1,2}))?/);                      /* 2026-01-02 */
+  if (m) return (+m[1]) * 10000 + (+m[2]) * 100 + (+(m[3] || 1));
+  m = t.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);                /* 02/01/2026 */
+  if (m) { var th = +m[3]; if (th < 100) th += 2000; return th * 10000 + (+m[2]) * 100 + (+m[1]); }
+  m = t.match(/^(\d{1,2})\s+([a-z]{3,})[a-z.]*\s*'?(\d{2,4})?$/);            /* 2 Agu 2026 */
+  if (m && NAMABLN[m[2].slice(0, 3)]) {
+    var th2 = m[3] ? (+m[3] < 100 ? 2000 + +m[3] : +m[3]) : 2000;
+    return th2 * 10000 + NAMABLN[m[2].slice(0, 3)] * 100 + (+m[1]);
+  }
+  m = t.match(/^([a-z]{3,})[a-z.]*\s*'?(\d{2,4})$/);                         /* Jan 2025 / Mei25 */
+  if (m && NAMABLN[m[1].slice(0, 3)]) {
+    var th3 = +m[2] < 100 ? 2000 + +m[2] : +m[2];
+    return th3 * 10000 + NAMABLN[m[1].slice(0, 3)] * 100;
+  }
+  m = t.match(/^-?\d+$/);                                                     /* hari ke-1, 2, 3 */
+  if (m) return +t;
+  return null;
+}
+
+/* 1 = menaik, -1 = menurun, 0 = bukan deret waktu yang urut */
+function arahWaktu(label) {
+  var k = label.map(kunciWaktu);
+  if (k.filter(function (x) { return x !== null; }).length < label.length * 0.8) return 0;
+  var naik = true, turun = true;
+  for (var i = 1; i < k.length; i++) {
+    if (k[i] === null || k[i - 1] === null) continue;
+    if (k[i] < k[i - 1]) naik = false;
+    if (k[i] > k[i - 1]) turun = false;
+  }
+  return naik ? 1 : turun ? -1 : 0;
+}
+
 function jenisTabel(t) {
   var h0 = (t.th[0] || "").toLowerCase();
   if (h0 === "") return "detail";                        /* tabel rincian bernomor */
-  if (/^(bulan|periode|tanggal|hari ke)$/.test(h0)) return "waktu";
+  if (/^(bulan|periode|tanggal|hari ke)$/.test(h0)) {
+    /* hanya deret yang benar-benar urut yang boleh dibaca sebagai waktu */
+    t.arah = arahWaktu(t.data.map(function (r) { return r[0]; }));
+    return t.arah ? "waktu" : "dimensi";
+  }
   var sisa = t.th.slice(1).filter(Boolean);
   var cocok = sisa.filter(function (h) { return BULAN.test(h.replace(/\s+/g, "")); }).length;
   if (sisa.length >= 4 && cocok >= sisa.length * 0.7) return "matriks";
@@ -371,7 +417,14 @@ function jenisTabel(t) {
 
 /* kolom mana yang paling layak dianalisa */
 var PRIORITAS = [/nilai|omset|penerimaan|pendapatan/i, /keluar|biaya|beban/i,
-                 /skor|rata-rata/i, /reach|posting/i, /pesanan|qty|orang|retur|jumlah/i];
+                 /reach|posting/i, /pesanan|qty|orang|retur|jumlah|menilai|tugas/i,
+                 /skor|rata-rata/i];
+
+/* Kolom yang TIDAK boleh dipakai untuk kontribusi: menjumlahkan rata-rata,
+   skor, atau persentase lalu membaginya jadi porsi itu omong kosong.
+   Untuk pertumbuhan kolom begini tetap sah — rata-rata yang naik 10% itu
+   pernyataan yang bermakna. */
+var TAKJUMLAH = /rata-?rata|rerata|median|avg|skor|grade|gap|selisih|progres|indeks|index|\ber\b|per hari|\/hari|per 1|capaian|bobot/i;
 
 function kolomAngka(t) {
   var hasil = [];
@@ -391,8 +444,21 @@ function kolomAngka(t) {
   return hasil;
 }
 
-function pilihKolom(kols) {
+function pilihKolom(kols, untukKontribusi) {
   var pakai = kols.filter(function (k) { return !k.persen; });
+  if (untukKontribusi) {
+    pakai = pakai.filter(function (k) {
+      if (TAKJUMLAH.test(k.nama)) return false;
+      /* nilai skala 1-5 berkoma (skor penilaian) bukan jumlah yang bisa
+         dibagi jadi porsi; cacahan bulat kecil tetap boleh */
+      var v = k.isi.filter(function (x) { return x !== null; });
+      var pecahan = v.some(function (x) { return x % 1 !== 0; });
+      var maks = v.reduce(function (m, x) { return Math.max(m, Math.abs(x)); }, 0);
+      if (!k.uang && pecahan && maks <= 5) return false;
+      return true;
+    });
+    if (!pakai.length) return null;
+  }
   if (!pakai.length) pakai = kols;
   for (var i = 0; i < PRIORITAS.length; i++) {
     var k = pakai.filter(function (x) { return PRIORITAS[i].test(x.nama); })[0];
@@ -454,6 +520,7 @@ function horizontal(t, jenis) {
       label.push(t.data[r][0] || "—");
       seri.push(kol.isi[r]);
     }
+    if (t.arah === -1) { label.reverse(); seri.reverse(); }   /* tabel terbaru di atas */
   }
   if (seri.length < 3) return null;
 
@@ -477,8 +544,10 @@ function horizontal(t, jenis) {
         lolos(label[n - 2]) + ", dari " + jumlah(sebelum, uang) + " ke " + jumlah(akhir, uang)) + ".";
   if (yoy !== null) kal += " Dibanding periode yang sama setahun lalu <span class='vh-" +
     (yoy >= 0 ? "naik" : "turun") + "'>" + (yoy >= 0 ? "naik" : "turun") + " " + pct(Math.abs(yoy)) + "</span>.";
-  if (laju !== null) kal += " Rata-rata 3 periode terakhir " +
-    (laju >= 0 ? "lebih tinggi " : "lebih rendah ") + pct(Math.abs(laju)) + " dari 3 periode sebelumnya.";
+  if (laju !== null) kal += Math.abs(laju) < 0.5
+    ? " Rata-rata 3 periode terakhir praktis sama dengan 3 periode sebelumnya."
+    : " Rata-rata 3 periode terakhir " + (laju >= 0 ? "lebih tinggi " : "lebih rendah ") +
+      pct(Math.abs(laju)) + " dari 3 periode sebelumnya.";
   kal += " Puncaknya " + lolos(label[maks]) + " (" + jumlah(seri[maks], uang) + "), terendah " +
     lolos(label[min]) + " (" + jumlah(seri[min], uang) + ").";
 
@@ -497,7 +566,7 @@ function lolos(s) {
   });
 }
 
-function panelVertikal(a) {
+function panelVertikal(a, dari) {
   if (!a) return "";
   var atas = a.baris.slice(0, 8), sisa = a.baris.slice(8);
   if (sisa.length) atas = atas.concat([{ nama: sisa.length + " baris lainnya",
@@ -509,13 +578,14 @@ function panelVertikal(a) {
       "</span><span class='vh-rel'><i style='width:" + (p.s / mx * 100).toFixed(1) + "%'></i></span>" +
       "<span class='vh-num'>" + pct(p.s) + " · " + jumlah(p.v, a.uang) + "</span></div>";
   }).join("");
-  return "<div class='panel'><div class='vh-kep'><span class='vh-tag'>Vertikal</span><h3>Komposisi</h3></div>" +
+  return "<div class='panel'><div class='vh-kep'><span class='vh-tag'>Vertikal</span><h3>Kontribusi" +
+    (dari ? " · " + lolos(dari) : "") + "</h3></div>" +
     "<div class='vh-ket'>Porsi tiap baris terhadap total <b>" + lolos(a.kolom) + "</b> — " +
     jumlah(a.total, a.uang) + ".</div>" + isi +
     "<div class='vh-sim'>" + a.kalimat + "</div></div>";
 }
 
-function panelHorizontal(a) {
+function panelHorizontal(a, dari) {
   if (!a) return "";
   var n = a.seri.length, ambil = Math.min(n, 12), mulai = n - ambil;
   var mx = Math.max.apply(null, a.seri.slice(mulai).map(Math.abs)) || 1;
@@ -530,7 +600,8 @@ function panelHorizontal(a) {
       (dd === null ? "" : " · <span class='vh-" + (dd >= 0 ? "naik" : "turun") + "'>" +
         (dd >= 0 ? "+" : "−") + pct(Math.abs(dd)) + "</span>") + "</span></div>";
   }
-  return "<div class='panel'><div class='vh-kep'><span class='vh-tag'>Horizontal</span><h3>Pergerakan</h3></div>" +
+  return "<div class='panel'><div class='vh-kep'><span class='vh-tag'>Horizontal</span><h3>Pertumbuhan" +
+    (dari ? " · " + lolos(dari) : "") + "</h3></div>" +
     "<div class='vh-ket'>Perubahan <b>" + lolos(a.kolom) + "</b> antar periode" +
     (n > ambil ? " — " + ambil + " periode terakhir dari " + n : "") + ".</div>" + isi +
     "<div class='vh-sim'>" + a.kalimat + "</div></div>";
@@ -664,21 +735,42 @@ function susun(sec) {
     kandidat.push(t);
   });
 
-  var av = null, ah = null;
-  var dim = kandidat.filter(function (t) { return t.jenis === "dimensi"; })[0];
-  var wkt = kandidat.filter(function (t) { return t.jenis === "waktu"; })[0];
-  var mtx = kandidat.filter(function (t) { return t.jenis === "matriks"; })[0];
+  /* satu panel untuk tiap tabel yang layak: tabel berdimensi dapat kontribusi,
+     tabel berperiode dapat pertumbuhan. Halaman dengan banyak tabel jadi punya
+     banyak panel — itu memang yang diminta. */
+  var panel = [];
+  kandidat.forEach(function (t) {
+    if (panel.length >= 6) return;
+    if (t.jenis === "waktu" || t.jenis === "matriks") {
+      var ah = horizontal(t, t.jenis);
+      if (ah) panel.push(panelHorizontal(ah, t.judul));
+    } else {
+      var kol = pilihKolom(kolomAngka(t), true);
+      /* Tabel yang barisnya orang bukan komposisi, melainkan daftar nama.
+         Di modul HR itu sekaligus soal kerahasiaan: porsi per penilai
+         membeberkan siapa menilai berapa banyak. */
+      if (/^(nama|penilai|karyawan|pegawai|orang)$/i.test(t.th[0] || "")) kol = null;
+      /* Uang selalu layak dibagi jadi porsi; cacahan hanya kalau tabelnya
+         memang rincian berkategori, bukan daftar panjang. */
+      if (kol && !kol.uang && t.data.length > 20) kol = null;
+      var av = kol ? vertikal(t, kol) : null;
+      if (av) panel.push(panelVertikal(av, t.judul));
+    }
+  });
 
-  var sumberV = dim || wkt || kandidat[0];
-  if (sumberV && sumberV.jenis !== "matriks") {
-    var kol = pilihKolom(kolomAngka(sumberV));
-    if (kol) av = vertikal(sumberV, kol);
+  /* tabel waktu juga punya komposisi antar periode — berguna kalau halaman ini
+     tidak punya satu pun tabel berdimensi */
+  if (!panel.length) {
+    var cad = kandidat.filter(function (t) { return t.jenis === "waktu"; })[0];
+    if (cad) {
+      var k2 = pilihKolom(kolomAngka(cad), true);
+      var a2 = k2 ? vertikal(cad, k2) : null;
+      if (a2) panel.push(panelVertikal(a2, cad.judul));
+    }
   }
-  if (wkt) ah = horizontal(wkt, "waktu");
-  else if (mtx) ah = horizontal(mtx, "matriks");
 
   var html = "<div class='vh-blok' data-cap='" + lolos(cap) + "'>";
-  if (av || ah) html += "<div class='vh-duo'>" + panelVertikal(av) + panelHorizontal(ah) + "</div>";
+  if (panel.length) html += "<div class='vh-duo'>" + panel.join("") + "</div>";
   else html += panelKosong(sec.querySelectorAll("table").length);
   html += panelAI() + "</div>";
 
@@ -2873,19 +2965,47 @@ function pdfRapor_(p){
       }),
       ["Total","", String(p.total), "", p.total? "100%" : "0%"]);
 
-  /* ===== nilai per aspek ===== */
-  judul("Nilai per aspek", "Rata-rata tiap arah setelah kalibrasi, lalu digabung memakai bobot di atas.");
+  /* ===== nilai per aspek =====
+     Arah yang penilainya cuma satu orang disembunyikan: kolomnya bukan
+     rata-rata, melainkan nilai satu orang yang namanya gampang ditebak
+     (Top Down = atasan langsung).
+
+     Menyembunyikan SATU kolom saja tidak cukup. Nilai akhir tiap aspek sudah
+     tampil di grafik Profil kompetensi, dan bobot tiap arah ada di tabel
+     Komposisi penilai — jadi satu kolom yang hilang bisa dihitung balik dari
+     nilai akhir dikurangi arah-arah lain. Supaya persamaannya tidak punya
+     jawaban tunggal, minimal dua kolom harus tertutup. */
+  var hadir=KAT360.filter(function(c){ return (p.n[c]||0) > 0; });
+  var tutup={};
+  hadir.forEach(function(c){ if(p.n[c] === 1) tutup[c]=1; });
+  if(Object.keys(tutup).length === 1 && hadir.length > 1) {
+    hadir.filter(function(c){ return !tutup[c]; })
+         .sort(function(x,y){ return (p.n[x]||0)-(p.n[y]||0); })
+         .slice(0,1).forEach(function(c){ tutup[c]=1; });
+  }
+  var adaTutup=Object.keys(tutup).length > 0;
+
+  judul("Nilai per aspek", "Rata-rata tiap arah setelah kalibrasi, lalu digabung memakai bobot di atas." +
+        (adaTutup ? " Arah dengan penilai terlalu sedikit ditutup supaya nilai satu orang tidak terbaca sendiri." : ""));
   var kolA=[{t:"Aspek",w:46,b:1},{t:"Bobot",w:14,n:1}]
     .concat(KAT360.map(function(c){ return {t:c.replace("Cross-Div","Cross"), w:21, n:1}; }))
     .concat([{t:"Akhir",w:18,n:1,b:1},{t:"Diri",w:18,n:1}]);
   tbl(kolA,
       ASP360.map(function(a){
         return [a.nama, Math.round(a.bobot*100)+"%"]
-          .concat(KAT360.map(function(c){ return p.byCat[a.kode][c]==null? "-" : f2_360(p.byCat[a.kode][c]); }))
+          .concat(KAT360.map(function(c){
+            if(tutup[c]) return "•••";
+            return p.byCat[a.kode][c]==null? "-" : f2_360(p.byCat[a.kode][c]);
+          }))
           .concat([p.fin[a.kode]==null?"-":f2_360(p.fin[a.kode]), p.self[a.kode]==null?"-":f2_360(p.self[a.kode])]);
       }),
       ["Total",""].concat(KAT360.map(function(){ return ""; }))
         .concat([p.t==null?"-":f2_360(p.t), p.ts==null?"-":f2_360(p.ts)]));
+  if(adaTutup && y + 6 <= BOT){
+    F(8,"normal",C360.mut);
+    T("••• = ditutup demi kerahasiaan penilai. Nilai akhir tetap dihitung dari angka aslinya.", L, y+1);
+    y+=6;
+  }
 
   /* Rincian nilai per penilai sengaja TIDAK dicetak. Walau namanya sudah
      disamarkan jadi "Penilai 3", dengan hanya 3-6 penilai per orang angkanya
