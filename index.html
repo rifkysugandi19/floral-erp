@@ -281,6 +281,11 @@ footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--line);font-si
 .vh-rel{height:7px;border-radius:99px;background:var(--line);overflow:hidden}
 .vh-rel i{display:block;height:100%;border-radius:99px;background:var(--brand)}
 .vh-rel i.turun{background:var(--crit,#c0504a)}
+.vh-rel.vh-dua{height:14px;display:grid;grid-template-rows:1fr 1fr;gap:2px;background:none;border-radius:0}
+.vh-rel.vh-dua i{height:6px;background:var(--line)}
+.vh-rel.vh-dua i.lalu{background:var(--line);opacity:.9}
+.vh-rel.vh-dua i:not(.lalu){background:var(--brand)}
+.vh-rel.vh-dua i.turun{background:var(--crit,#c0504a)}
 .vh-num{font:600 12.5px var(--mono);text-align:right;white-space:nowrap}
 .vh-sim{font-size:13px;line-height:1.7;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
 .vh-naik{color:#2f7d4a;font-weight:600}
@@ -303,6 +308,7 @@ footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--line);font-si
 "use strict";
 
 var VH = window.__VH = { sb: null };
+var AIBOX = new WeakMap();   /* section -> kartu Analisa AI miliknya */
 
 /* ---------- membaca angka yang sudah diformat hub ---------- */
 /* "Rp 740,2 jt" -> 740200000 ; "7.280" -> 7280 ; "12,3%" -> 12.3 */
@@ -559,6 +565,77 @@ function horizontal(t, jenis) {
   };
 }
 
+/* ---------- tahun ke tahun ----------
+   Hanya untuk deret bulanan yang benar-benar punya dua tahun beruntun.
+   Deret harian ditolak: kunci waktunya memuat tanggal, jadi satu bulan bisa
+   muncul berkali-kali dan perbandingannya jadi apel lawan jeruk. */
+function tahunKeTahun(label, seri, uang) {
+  var pt = [];
+  for (var i = 0; i < label.length; i++) {
+    var k = kunciWaktu(label[i]);
+    if (k === null || k % 100 !== 0) return null;
+    var th = Math.floor(k / 10000), bl = Math.floor(k / 100) % 100;
+    if (!th || !bl || th < 1900) return null;
+    pt.push({ th: th, bl: bl, v: seri[i], lab: label[i] });
+  }
+  var tahun = {};
+  for (var j = 0; j < pt.length; j++) {
+    var t = tahun[pt[j].th] || (tahun[pt[j].th] = {});
+    if (t[pt[j].bl]) return null;                 /* bulan dobel: bukan deret bulanan */
+    t[pt[j].bl] = pt[j];
+  }
+  var daftar = Object.keys(tahun).map(Number).sort(function (a, b) { return a - b; });
+  if (daftar.length < 2) return null;
+  var ini = daftar[daftar.length - 1], lalu = ini - 1;
+  if (!tahun[lalu]) return null;
+
+  var pasang = [];
+  Object.keys(tahun[ini]).map(Number).sort(function (a, b) { return a - b; }).forEach(function (bl) {
+    if (tahun[lalu][bl]) pasang.push({ lab: tahun[ini][bl].lab, lalu: tahun[lalu][bl].v, ini: tahun[ini][bl].v });
+  });
+  if (pasang.length < 3) return null;
+
+  pasang.forEach(function (p) { p.d = p.lalu ? (p.ini - p.lalu) / Math.abs(p.lalu) * 100 : null; });
+  var tIni = total(pasang.map(function (p) { return p.ini; }));
+  var tLalu = total(pasang.map(function (p) { return p.lalu; }));
+  var dTot = tLalu ? (tIni - tLalu) / Math.abs(tLalu) * 100 : null;
+
+  var naik = pasang.filter(function (p) { return p.d !== null && p.d > 0; }).length;
+  var ada = pasang.filter(function (p) { return p.d !== null; });
+  var urut = ada.slice().sort(function (a, b) { return b.d - a.d; });
+
+  var kal = "Sepanjang " + pasang.length + " bulan yang bisa dibandingkan, " + ini + " " +
+    (dTot === null ? "mencatat " + jumlah(tIni, uang)
+      : "<span class='vh-" + (dTot >= 0 ? "naik" : "turun") + "'>" + (dTot >= 0 ? "naik" : "turun") + " " +
+        pct(Math.abs(dTot)) + "</span> dari " + lalu) +
+    " — " + jumlah(tLalu, uang) + " jadi " + jumlah(tIni, uang) + ".";
+  kal += " " + naik + " dari " + ada.length + " bulan tumbuh.";
+  if (urut.length >= 2) kal += " Terkuat " + lolos(urut[0].lab) + " (<span class='vh-naik'>+" +
+    pct(urut[0].d) + "</span>), terlemah " + lolos(urut[urut.length - 1].lab) + " (<span class='vh-" +
+    (urut[urut.length - 1].d >= 0 ? "naik'>+" : "turun'>−") + pct(Math.abs(urut[urut.length - 1].d)) + "</span>).";
+
+  return { ini: ini, lalu: lalu, uang: uang, pasang: pasang, kalimat: kal };
+}
+
+function panelYoY(a, dari) {
+  if (!a) return "";
+  var mx = Math.max.apply(null, a.pasang.map(function (p) { return Math.max(Math.abs(p.ini), Math.abs(p.lalu)); })) || 1;
+  var isi = a.pasang.map(function (p) {
+    return "<div class='vh-baris'><span class='vh-nama'>" + lolos(p.lab) + "</span>" +
+      "<span class='vh-rel vh-dua'><i class='lalu' style='width:" + (Math.abs(p.lalu) / mx * 100).toFixed(1) + "%'></i>" +
+      "<i class='" + (p.d !== null && p.d < 0 ? "turun" : "") + "' style='width:" +
+      (Math.abs(p.ini) / mx * 100).toFixed(1) + "%'></i></span>" +
+      "<span class='vh-num'>" + jumlah(p.ini, a.uang) +
+      (p.d === null ? "" : " · <span class='vh-" + (p.d >= 0 ? "naik" : "turun") + "'>" +
+        (p.d >= 0 ? "+" : "−") + pct(Math.abs(p.d)) + "</span>") + "</span></div>";
+  }).join("");
+  return "<div class='panel'><div class='vh-kep'><span class='vh-tag'>YoY</span><h3>Tahun ke tahun" +
+    (dari ? " · " + lolos(dari) : "") + "</h3></div>" +
+    "<div class='vh-ket'>Tiap bulan " + a.ini + " dibanding bulan yang sama " + a.lalu +
+    ". Batang atas " + a.lalu + ", batang bawah " + a.ini + ".</div>" + isi +
+    "<div class='vh-sim'>" + a.kalimat + "</div></div>";
+}
+
 /* ---------- menggambar ---------- */
 function lolos(s) {
   return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
@@ -717,10 +794,16 @@ function susun(sec) {
 
   var cap = sidik(sec);
   var lama = sec.querySelector(".vh-blok");
-  if (lama) {
-    if (lama.dataset.cap === cap) return;
-    lama.remove();
-  }
+  if (lama && lama.dataset.cap === cap) return;
+
+  /* Kartu AI dipakai ulang, tidak pernah dibangun ulang. Saat filter berubah
+     hub menimpa seluruh isi section — blok analisa ikut lenyap sebelum
+     pengamat sempat berbuat apa-apa. Simpanan di bawah memegang simpulnya
+     yang sudah terlepas, lengkap dengan jawaban Gemini dan tombolnya yang
+     masih hidup, lalu memasangnya kembali. */
+  var aiLama = (lama && lama.querySelector(".vh-ai")) || AIBOX.get(sec) || null;
+  if (aiLama && aiLama.parentNode) aiLama.parentNode.removeChild(aiLama);
+  if (lama) lama.remove();
 
   var id = sec.id.replace(/^p-/, "");
   var nm = namaHalaman(id);
@@ -740,10 +823,14 @@ function susun(sec) {
      banyak panel — itu memang yang diminta. */
   var panel = [];
   kandidat.forEach(function (t) {
-    if (panel.length >= 6) return;
+    if (panel.length >= 8) return;
     if (t.jenis === "waktu" || t.jenis === "matriks") {
       var ah = horizontal(t, t.jenis);
-      if (ah) panel.push(panelHorizontal(ah, t.judul));
+      if (ah) {
+        panel.push(panelHorizontal(ah, t.judul));
+        var ay = tahunKeTahun(ah.label, ah.seri, ah.uang);
+        if (ay) panel.push(panelYoY(ay, t.judul));
+      }
     } else {
       var kol = pilihKolom(kolomAngka(t), true);
       /* Tabel yang barisnya orang bukan komposisi, melainkan daftar nama.
@@ -772,10 +859,14 @@ function susun(sec) {
   var html = "<div class='vh-blok' data-cap='" + lolos(cap) + "'>";
   if (panel.length) html += "<div class='vh-duo'>" + panel.join("") + "</div>";
   else html += panelKosong(sec.querySelectorAll("table").length);
-  html += panelAI() + "</div>";
+  if (!aiLama) html += panelAI();
+  html += "</div>";
 
   sec.insertAdjacentHTML("beforeend", html);
-  pasangAI(sec, nm.judul, nm.modul);
+  var blok = sec.querySelector(".vh-blok");
+  if (aiLama) blok.appendChild(aiLama);
+  else pasangAI(sec, nm.judul, nm.modul);
+  AIBOX.set(sec, blok.querySelector(".vh-ai"));
 }
 
 /* hub menggambar ulang section saat filter berubah atau data baru masuk;
