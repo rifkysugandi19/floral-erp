@@ -1602,17 +1602,47 @@ function markdown(t) {
   return out.join("");
 }
 
+/* Bahan untuk Gemini. Dulu isinya cuma KPI + 40 baris tabel pertama, dan itu
+   sebabnya jawabannya dangkal: ia menghitung ulang sendiri dari potongan data,
+   tanpa tahu periode mana yang sedang difilter, tanpa tahu angka mana yang
+   belum layak dipercaya, dan tanpa melihat hasil hitungan dashboard sendiri. */
 function bahanAI(sec, judul) {
   var kpi = [].slice.call(sec.querySelectorAll(".kpi")).map(function (k) {
     return { label: txt(k, ".l"), nilai: txt(k, ".v"), catatan: txt(k, ".n") };
   });
-  var tabel = [];
+
+  var tabel = [], potong = [];
   [].slice.call(sec.querySelectorAll("table")).forEach(function (tb) {
     var t = bacaTabel(tb);
     if (!t || jenisTabel(t) === "detail") return;
-    tabel.push({ judul: t.judul, kolom: t.th, baris: t.data.slice(0, 40) });
+    /* deret waktu dikirim utuh — justru di situ polanya; tabel lebar dipotong */
+    var batas = (jenisTabel(t) === "waktu") ? 120 : 60;
+    if (t.data.length > batas) potong.push(t.judul + " (" + t.data.length + " baris, dikirim " + batas + ")");
+    tabel.push({ judul: t.judul, kolom: t.th, baris: t.data.slice(0, batas) });
   });
-  return { halaman: judul, kpi: kpi, tabel: tabel };
+
+  /* hasil hitungan panel analisa: kontribusi, pertumbuhan, tahun ke tahun */
+  var panel = [].slice.call(sec.querySelectorAll(".vh-blok .panel")).map(function (p) {
+    var jud = p.querySelector("h3");
+    var baris = [].slice.call(p.querySelectorAll(".vh-baris")).slice(0, 15).map(function (b) {
+      return { nama: txt(b, ".vh-nama"), nilai: txt(b, ".vh-num") };
+    });
+    return { judul: jud ? jud.textContent.trim() : "", baris: baris, simpulan: txt(p, ".vh-sim") };
+  }).filter(function (p) { return p.baris.length || p.simpulan; });
+
+  var f = (window.__bacaFilter && window.__bacaFilter()) || {};
+  var periode = txt(document, "#m-per") || "";
+  var mutu = window.__MUTU || {};
+
+  return {
+    halaman: judul,
+    periode: periode || (f.tahun && f.tahun !== "all" ? "Tahun " + f.tahun : "semua periode"),
+    cutoff: mutu.cutoff || "",
+    mutu: mutu.catatan || "",
+    potong: potong.length ? potong.join("; ") : "",
+    patokan: "gaji (termasuk gaji owner) maksimal 15% dari penerimaan; sewa maksimal 15% dari penerimaan",
+    kpi: kpi, panel: panel, tabel: tabel
+  };
 }
 function txt(el, sel) { var x = el.querySelector(sel); return x ? x.textContent.trim() : ""; }
 
@@ -5382,6 +5412,15 @@ function onFeed(result){
   }
   F=out; META={};
   (F.META||[]).forEach(function(r){ META[r.d1]=(r.m==="teks")? r.d2 : r.v; });
+  try {
+    var kq={}; (F.KUALITAS||[]).forEach(function(r){ if(r.m==="orders") kq[r.d1]=r.v; });
+    window.__MUTU={ cutoff: META.cutoff||"",
+      catatan: "pesanan berstatus kosong/??? "+fmt(kq.status_kosong||0)
+        +"; status done tapi belum terkirim "+fmt(kq.done_belum_kirim||0)
+        +"; retur tapi tercatat terkirim "+fmt(kq.retur_tercatat_terkirim||0)
+        +"; settlement nol/kosong "+fmt(kq.settle_nol||0)
+        +" (dari "+fmt(META.orders||0)+" pesanan). Selama tunggakan status ini belum dibereskan, angka ketepatan kirim dan nilai bersih belum layak dipakai menilai kinerja." };
+  } catch(e){}
   if(!siap){ siap=true; buildFilters(); }
   gabungFilter();
   document.getElementById("boot").hidden=true;
