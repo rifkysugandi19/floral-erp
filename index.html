@@ -1640,7 +1640,7 @@ function bahanAI(sec, judul) {
     cutoff: mutu.cutoff || "",
     mutu: mutu.catatan || "",
     potong: potong.length ? potong.join("; ") : "",
-    patokan: "gaji (termasuk gaji owner) maksimal 15% dari penerimaan; sewa maksimal 15% dari penerimaan",
+    patokan: "gaji (termasuk gaji owner) di bawah 15% dari penerimaan; margin laba operasional di atas 15%",
     kpi: kpi, panel: panel, tabel: tabel
   };
 }
@@ -2935,8 +2935,8 @@ function pBiaya(){
   var tH=0; hpp.forEach(function(p){ tH+=p[1]; });
   var tO=0; opx.forEach(function(p){ tO+=p[1]; });
   var gaji=0; opx.forEach(function(p){ if(p[0].indexOf("Gaji")===0) gaji+=p[1]; });
-  var sewa=0; opx.forEach(function(p){ if(p[0]==="Sewa") sewa+=p[1]; });
-  var pGaji=pct(gaji,terima), pSewa=pct(sewa,terima);
+  var labaOp=terima+netK("HPP")+netK("Opex");
+  var pGaji=pct(gaji,terima), pMargin=pct(labaOp,terima);
 
   function tabelBiaya(pairs,total){
     return tabel([{t:"Kategori"},{t:"Keluar",n:1},{t:"% kelompok",n:1},{t:"% penerimaan",n:1}],
@@ -2946,14 +2946,15 @@ function pBiaya(){
   return '<div class="kpis">'
     + kpi("HPP / produksi", rp(tH), pct(tH,terima)+"% dari penerimaan")
     + kpi("Opex", rp(tO), pct(tO,terima)+"% dari penerimaan")
-    + kpi("Gaji (termasuk owner)", rp(gaji), pGaji+"% dari penerimaan · patokan ≤15%", pGaji>15?"bad":"good")
-    + kpi("Sewa", rp(sewa), pSewa+"% dari penerimaan · patokan ≤15%", pSewa>15?"bad":"good")
+    + kpi("Gaji (termasuk owner)", rp(gaji), pGaji+"% dari penerimaan · patokan <15%", pGaji>15?"bad":"good")
+    + kpi("Margin laba operasional", pMargin+"%", "patokan >15%", (labaOp>0&&pMargin>=15)?"good":"bad")
     + '</div>'
     + '<div class="panel"><h3>Terhadap patokan internal</h3>'
     + (pGaji>15 ? temuan("crit","Gaji lewat patokan","Gaji, tunjangan, dan gaji owner "+pGaji+"% dari penerimaan, di atas patokan 15%. Setara "+rp(gaji-terima*0.15)+" di atas batas.")
                : temuan("info","Gaji di dalam patokan","Gaji, tunjangan, dan gaji owner "+pGaji+"% dari penerimaan, masih di bawah patokan 15%."))
-    + (pSewa>15 ? temuan("crit","Sewa lewat patokan","Sewa "+pSewa+"% dari penerimaan, di atas patokan 15%.")
-               : temuan("info","Sewa di dalam patokan","Sewa "+pSewa+"% dari penerimaan, masih di bawah patokan 15%."))
+    + ((labaOp>0&&pMargin>=15)
+        ? temuan("info","Margin di atas patokan","Laba operasional "+pMargin+"% dari penerimaan, di atas patokan 15%.")
+        : temuan("crit","Margin di bawah patokan","Laba operasional "+pMargin+"% dari penerimaan, di bawah patokan 15%. Setara "+rp(terima*0.15-labaOp)+" yang perlu ditutup, lewat kenaikan penerimaan atau penurunan beban."))
     + '</div>'
     + '<div class="panel"><h3>HPP / produksi</h3>'
     + (hpp.length? tabelBiaya(hpp,tH) : '<div class="note">Tidak ada data.</div>') + '</div>'
@@ -3077,9 +3078,9 @@ function pLabaRugi(){
   var kotor=pend-hppN, operasi=kotor-opexN;
   var belum=masukK("Belum terklasifikasi")-keluarK("Belum terklasifikasi");
   var rHpp=katBersih("HPP"), rOpx=katBersih("Opex");
-  var gaji=0, sewa=0;
-  rOpx.forEach(function(p){ if(p[0].indexOf("Gaji")===0) gaji+=p[1]; if(p[0]==="Sewa") sewa+=p[1]; });
-  var pGaji=pct(gaji,pend), pSewa=pct(sewa,pend);
+  var gaji=0;
+  rOpx.forEach(function(p){ if(p[0].indexOf("Gaji")===0) gaji+=p[1]; });
+  var pGaji=pct(gaji,pend), pMargin=pct(operasi,pend);
 
   var baris=[barisLap("Pendapatan (penerimaan kas)",pend,pend,true)];
   rHpp.forEach(function(p){ baris.push(barisLap(p[0],-p[1],pend,false,true)); });
@@ -3103,8 +3104,8 @@ function pLabaRugi(){
     + kpi("Laba kotor", rp(kotor), pct(kotor,pend)+"% dari pendapatan")
     + kpi("Beban operasional", rp(opexN), pct(opexN,pend)+"% dari pendapatan")
     + kpi("Laba operasional", rp(operasi), pct(operasi,pend)+"% margin", operasi<0?"bad":"good")
-    + kpi("Gaji", rp(gaji), pGaji+"% dari pendapatan · patokan ≤15%", pGaji>15?"bad":"good")
-    + kpi("Sewa", rp(sewa), pSewa+"% dari pendapatan · patokan ≤15%", pSewa>15?"bad":"good")
+    + kpi("Gaji", rp(gaji), pGaji+"% dari pendapatan · patokan <15%", pGaji>15?"bad":"good")
+    + kpi("Margin laba operasional", pMargin+"%", "patokan >15%", (operasi>0&&pMargin>=15)?"good":"bad")
     + '</div>'
     + '<div class="panel"><h3>Laba rugi · basis kas</h3>'
     + '<p class="sub">Disusun dari uang yang benar-benar masuk dan keluar pada periode terpilih, bukan dari pengakuan pendapatan dan beban. Angkanya tidak sama dengan laba akuntansi.</p>'
