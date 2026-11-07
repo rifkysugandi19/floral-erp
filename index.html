@@ -122,6 +122,9 @@ table.heat tbody td:first-child{max-width:260px;white-space:nowrap;overflow:hidd
 .selorg{appearance:none;border:0;background:none;color:var(--brand);font:inherit;font-weight:600;padding:0;cursor:pointer;text-align:left;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--line)}
 .selorg:hover{text-decoration-color:var(--brand)}
 .selorg.on{color:var(--ink);text-decoration:none}
+.anom-unduh{border:1px solid var(--line);background:var(--surface);color:var(--brand);font:600 12.5px var(--body);padding:7px 13px;border-radius:9px;cursor:pointer;white-space:nowrap}
+.anom-unduh:hover{border-color:var(--brand);background:var(--accent-soft)}
+.anom-unduh:focus-visible{outline:2px solid var(--rose);outline-offset:1px}
 .find p{font-size:13px;color:var(--ink-2)}
 .stack{display:flex;flex-direction:column;gap:10px}
 .note{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:11px 14px;font-size:12.5px;color:var(--ink-2)}
@@ -187,6 +190,8 @@ footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--line);font-si
       <button role="tab" data-p="data"><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>Kualitas Data</button>
       <span class="grp">Finance</span>
       <button role="tab" data-p="kas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h18v12H3z"/><circle cx="12" cy="13" r="2.5"/></svg>Ringkasan Kas</button>
+      <button role="tab" data-p="lr"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h11l4 4v14H5z"/><path d="M8 12h8M8 16h5M8 8h4"/></svg>Laba Rugi</button>
+      <button role="tab" data-p="aruskas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17h10a4 4 0 0 0 0-8H8"/><path d="M7 6L4 9l3 3"/><path d="M17 14l3 3-3 3"/></svg>Arus Kas</button>
       <button role="tab" data-p="terima"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="M7 11l5 5 5-5"/><path d="M4 20h16"/></svg>Penerimaan</button>
       <button role="tab" data-p="biaya"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21V9"/><path d="M7 13l5-5 5 5"/><path d="M4 4h16"/></svg>Biaya</button>
       <button role="tab" data-p="rekening"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10l9-6 9 6"/><path d="M5 10v9h14v-9"/><path d="M9 19v-5h6v5"/></svg>Rekening &amp; Saldo</button>
@@ -246,6 +251,8 @@ footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--line);font-si
     <section class="page" id="p-beban" hidden></section>
     <section class="page" id="p-data" hidden></section>
     <section class="page" id="p-kas" hidden></section>
+    <section class="page" id="p-lr" hidden></section>
+    <section class="page" id="p-aruskas" hidden></section>
     <section class="page" id="p-terima" hidden></section>
     <section class="page" id="p-biaya" hidden></section>
     <section class="page" id="p-rekening" hidden></section>
@@ -559,10 +566,10 @@ section.page .panel::before{content:"";position:absolute;left:0;top:20px;width:4
 /* ---------- baris hero: kartu besar + rail kanan ----------
    Sebelumnya tiap halaman adalah satu kolom panel selebar penuh dari atas ke
    bawah, jadi mata selalu mendarat di tengah. Baris pertama sekarang asimetris. */
-.tema-hero{display:grid;grid-template-columns:1.9fr 1fr;gap:16px;margin:0 0 16px}
+.tema-hero{display:grid;grid-template-columns:1.55fr 1fr;gap:14px;margin:0 0 14px}
 @media (max-width:980px){.tema-hero{grid-template-columns:1fr}}
 .tema-hero .th-hero{position:relative;overflow:hidden;border:0;border-radius:20px;
-  min-height:234px;padding:28px 30px;display:flex;flex-direction:column;justify-content:center;
+  min-height:188px;padding:22px 26px;display:flex;flex-direction:column;justify-content:center;
   background:linear-gradient(104deg,var(--tema-hero-a),var(--tema-hero-b));color:#fff;
   box-shadow:0 12px 34px rgba(80,15,40,.22)}
 .tema-hero .th-hero::after{content:"";position:absolute;right:-20px;bottom:-30px;width:270px;height:200px;
@@ -574,30 +581,30 @@ section.page .panel::before{content:"";position:absolute;left:0;top:20px;width:4
   .tema-hero .th-hero::after{width:168px;height:128px;right:-14px;bottom:-18px;opacity:.55}
 }
 .tema-hero .th-hero .l{color:rgba(255,255,255,.72);letter-spacing:.16em;font-size:11.5px}
-.tema-hero .th-hero .v{color:#fff;font-size:clamp(38px,4.2vw,60px);line-height:1.02;margin:6px 0 4px}
-.tema-hero .th-hero .n{color:rgba(255,255,255,.80);font-size:14px}
-.th-garis{height:1px;background:rgba(255,255,255,.22);margin:18px 0 14px;width:58%}
+.tema-hero .th-hero .v{color:#fff;font-size:clamp(42px,5vw,72px);line-height:1;margin:4px 0 2px}
+.tema-hero .th-hero .n{color:rgba(255,255,255,.80);font-size:14.5px}
+.th-garis{height:1px;background:rgba(255,255,255,.22);margin:13px 0 10px;width:48%}
 /* ubin KPI yang dipindah ke dalam hero kehilangan kotaknya, bukan isinya */
 .tema-hero .th-hero .kpi{background:none;border:0;box-shadow:none;padding:0;margin:0;
   min-height:0;overflow:visible;display:flex;flex-direction:column;gap:2px;align-items:flex-start}
 .tema-hero .th-hero .kpi::after{display:none}
 .th-kedua .kpi .l{letter-spacing:.14em;font-size:10.5px}
-.th-kedua .kpi .v{font-size:21px;margin:2px 0 1px}
-.th-kedua .kpi .n{font-size:12.5px}
+.th-kedua .kpi .v{font-size:24px;margin:2px 0 1px}
+.th-kedua .kpi .n{font-size:13px}
 
 .th-rail{background:var(--surface);border:1px solid var(--line);border-radius:20px;
-  padding:18px 20px 16px;display:flex;flex-direction:column;align-items:center;
+  padding:16px 18px 14px;display:flex;flex-direction:column;align-items:center;
   box-shadow:0 2px 12px rgba(120,40,70,.06)}
 .th-rail .th-j{align-self:flex-start;font:700 14.5px var(--display);color:var(--ink)}
-.th-donut{position:relative;width:176px;height:176px;margin:6px 0 2px}
+.th-donut{position:relative;width:148px;height:148px;margin:4px 0 0}
 .th-donut svg{width:100%;height:100%;transform:rotate(-90deg)}
 .th-donut .th-v{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-  font:700 30px var(--display);color:var(--ink)}
+  font:700 27px var(--display);color:var(--ink)}
 /* ubin KPI yang dipindah ke dalam rail: kotaknya dilucuti, isinya tetap */
 .th-rail .kpi{background:none !important;border:0;box-shadow:none;padding:0;margin:0;
   min-height:0;overflow:visible;display:flex;flex-direction:column;gap:2px}
 .th-rail .kpi::after{display:none}
-.th-utama{width:100%;display:flex;justify-content:center;margin:0 0 12px}
+.th-utama{width:100%;display:flex;justify-content:center;margin:0 0 10px}
 .th-utama .kpi{align-items:center;text-align:center}
 .th-utama .kpi .l{font:500 12.5px var(--body);color:var(--muted);letter-spacing:0;text-transform:none}
 .th-utama .kpi .v{font:700 19px var(--display)}
@@ -619,11 +626,15 @@ section.page .panel::before{content:"";position:absolute;left:0;top:20px;width:4
 /* ---------- ubin KPI jadi stat card berchip ikon ----------
    Satu baris enam kotak merah muda terbaca sebagai satu benda. Chip ikon
    berwarna membuatnya terbaca sebagai enam hal yang berbeda. */
-.kpis.th-polos .kpi{display:flex;flex-direction:row;align-items:center;gap:13px}
+.kpis.th-polos{grid-template-columns:repeat(auto-fit,minmax(246px,1fr))}
+.kpis.th-polos .kpi{display:flex;flex-direction:row;align-items:center;gap:14px;padding:17px 20px}
+.kpis.th-polos .kpi .v{font-size:29px}
+.kpis.th-polos .kpi .l{font-size:12.5px}
+.kpis.th-polos .kpi .n{font-size:12.5px}
 .kpis.th-polos .kpi > .th-teks{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
-.kpis.th-polos .kpi > .th-ic{flex:0 0 44px;width:44px;height:44px;border-radius:13px;
+.kpis.th-polos .kpi > .th-ic{flex:0 0 48px;width:48px;height:48px;border-radius:14px;
   display:flex;align-items:center;justify-content:center;background:var(--chip-bg,var(--k2s));color:var(--chip,var(--k2))}
-.kpis.th-polos .kpi > .th-ic svg{width:21px;height:21px;fill:none;stroke:currentColor;
+.kpis.th-polos .kpi > .th-ic svg{width:23px;height:23px;fill:none;stroke:currentColor;
   stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .kpis.th-polos .kpi > .th-teks{min-width:0;flex:1}
 /* ubin pertama kembali jadi ubin biasa: kartu hero-nya sudah pindah ke atas */
@@ -632,10 +643,10 @@ section.page .panel::before{content:"";position:absolute;left:0;top:20px;width:4
 .kpis.th-polos .kpi:first-child{background:var(--surface);border-color:var(--line);color:var(--ink);
   grid-column:auto;min-height:0;overflow:hidden}
 .kpis.th-polos .kpi:first-child:not(.warn):not(.bad)::after{display:none}
-.kpis.th-polos .kpi:first-child .l{color:var(--muted);font:400 12px var(--body);
+.kpis.th-polos .kpi:first-child .l{color:var(--muted);font:400 12.5px var(--body);
   letter-spacing:0;text-transform:none}
-.kpis.th-polos .kpi:first-child .v{color:var(--ink);font-size:27px}
-.kpis.th-polos .kpi:first-child .n{color:var(--muted);font-size:11.5px}
+.kpis.th-polos .kpi:first-child .v{color:var(--ink);font-size:29px}
+.kpis.th-polos .kpi:first-child .n{color:var(--muted);font-size:12.5px}
 .kpis.th-polos .kpi.warn:first-child{background:var(--warn-soft);border-color:transparent}
 .kpis.th-polos .kpi.bad:first-child{background:var(--crit-soft);border-color:transparent}
 .kpis.th-polos .kpi.warn:first-child .v{color:var(--warn)}
@@ -744,7 +755,7 @@ function umurJam(cap) {
 function spandukBasi(cap) {
   var wrap = document.querySelector(".wrap");
   if (!wrap) return;
-  var jam = umurJam(cap), el = wrap.querySelector(".tema-basi");
+  var jam = umurJam(cap), el = wrap.querySelector(".tema-stale");
   var stamp = document.querySelector(".tema-stamp");
   if (jam === null || jam < 24) {
     if (el) el.remove();
@@ -753,7 +764,7 @@ function spandukBasi(cap) {
   }
   if (!el) {
     el = document.createElement("div");
-    el.className = "tema-basi";
+    el.className = "tema-basi tema-stale";
     el.setAttribute("role", "status");
     var mast = wrap.querySelector("header.masthead");
     if (mast) mast.insertAdjacentElement("afterend", el);
@@ -974,7 +985,7 @@ function kartuRail(kartu, dipakai) {
      ada cincin, rail sudah penuh — sisakan ubin untuk baris stat di bawahnya. */
   var kolam = sorot.filter(function (x) { return x !== sumber; })
     .concat(sisa.filter(function (x) { return x !== sumber && sorot.indexOf(x) < 0; }));
-  var muat = pakaiDonut ? Math.max(0, kolam.length - 2) : kolam.length;
+  var muat = pakaiDonut ? Math.max(0, kolam.length - 3) : kolam.length;
   var lain = kolam.slice(0, Math.min(2, muat));
 
   var el = document.createElement('div');
@@ -2174,6 +2185,7 @@ const PETA = [
   ["FEED_OPS",            "sales.feed",    true],
   ["DETAIL_ANTRIAN",      "sales.antrian", true],
   ["DETAIL_RETUR",        "sales.retur",   true],
+  ["DETAIL_ANOMALI",      "sales.anomali", false],
   ["FEED_CASH",           "finance.feed",  true],
   ["DETAIL_KAS",          "finance.kas",   true],
   ["FEED_EVENT",          "event.feed",    true],
@@ -2192,7 +2204,8 @@ const kunciDari = r => (PETA.find(p => String(r || "").indexOf(p[0]) === 0) || [
 const SYARAT = {
   ringkasan:"sales.feed", jual:"sales.feed", antrian:"sales.feed", retur:"sales.feed",
   beban:"sales.feed", data:"sales.feed",
-  kas:"finance.feed", terima:"finance.feed", biaya:"finance.feed",
+  kas:"finance.feed", lr:"finance.feed", aruskas:"finance.feed",
+  terima:"finance.feed", biaya:"finance.feed",
   rekening:"finance.feed", peta:"finance.feed", transaksi:"finance.feed",
   event:"event.feed", eo:"event.feed", kurva:"event.feed",
   daftarev:"event.feed", hariev:"event.feed", dataev:"event.feed",
@@ -2548,7 +2561,7 @@ function pRingkasan(){
   var perBulan=urut(grup("BULAN","gmv_rb",function(r){return r.d1;},function(r){return cocok(r.d1,r.d2);}),false);
   var ordB=grup("BULAN","orders",function(r){return r.d1;},function(r){return cocok(r.d1,r.d2);});
 
-  return '<div class="kpis">'
+  return spandukAnomali() + '<div class="kpis">'
     + kpi("Nilai penjualan", rp(gmv), fmt(orders)+" pesanan")
     + kpi("Rata-rata per pesanan", rp(gmv/(orders||1)), fmt(items)+" item")
     + kpi("Perlu dicek & dikirim", fmt(antrian), "belum tercatat terkirim", antrian?"warn":"")
@@ -2792,7 +2805,8 @@ function pData(){
         fmt(q("retur_tercatat_terkirim"))+" pesanan ada di database retur tapi Database Order bilang terkirim. Selama dua file ini terpisah, angka retur selalu bergantung file mana yang dibaca.")
     + temuan("info","Baru setelah itu angkanya layak dipakai menilai orang",
         "Sebelum itu, pakai dashboard ini untuk melihat beban dan menyiapkan barang — bukan untuk menilai kinerja.")
-    + '</div></div>';
+    + '</div>'
+    + panelAnomali() + '</div>';
 }
 
 
@@ -2998,6 +3012,135 @@ function pTransaksi(){
     + '</div>'
     + '<div class="panel"><div class="note">Daftar ini memuat setiap transaksi bernilai <b>Rp 5 juta ke atas</b>, ditambah semua baris yang bermasalah berapa pun nilainya. Transaksi kecil yang normal tidak ikut supaya halaman tetap ringan.</div></div>'
     + kerangkaDetail("det-kas","Daftar transaksi","Diurut dari nilai terbesar.","Cari deskripsi, kategori, rekening…");
+}
+
+/* ================= Laporan keuangan (basis kas) =================
+   Disusun dari klasifikasi kas yang sudah ada, bukan dari jurnal. Itu batasnya,
+   dan batas itu ditulis di halamannya sendiri — bukan disembunyikan: tanpa data
+   piutang, utang, dan persediaan, yang bisa dihitung jujur hanyalah uang yang
+   benar-benar masuk dan keluar. */
+
+/* nilai bersih per kategori dalam satu kelompok: keluar dikurangi masuk,
+   supaya refund/pengembalian mengurangi beban, bukan menambah pendapatan */
+function katBersih(grupNama){
+  var k=grupK("KATEGORI","keluar_rb",function(r){return r.d1;},
+        function(r){ return r.d2===grupNama && cocokYm(r.d3); });
+  var m=grupK("KATEGORI","masuk_rb",function(r){return r.d1;},
+        function(r){ return r.d2===grupNama && cocokYm(r.d3); });
+  Object.keys(m).forEach(function(nm){ k[nm]=(k[nm]||0)-m[nm]; });
+  return urut(k,true).filter(function(p){ return Math.abs(p[1])>0.0001; });
+}
+function netBulan(ym,g){
+  var f=function(r){ return r.d1===ym && r.d2===g; };
+  return jmlK("BULAN","masuk_rb",f)-jmlK("BULAN","keluar_rb",f);
+}
+function barisLap(label,nilai,dasar,tebal,sisip){
+  return ['<span'+(sisip?' style="padding-left:18px;display:inline-block"':'')+'>'+
+    (tebal?'<b>'+esc(label)+'</b>':esc(label))+'</span>',
+    (tebal?'<b>'+rp(nilai)+'</b>':rp(nilai)),
+    (dasar? pct(Math.abs(nilai),Math.abs(dasar))+'%' : '—')];
+}
+
+function pLabaRugi(){
+  var pend=netK("Penerimaan");
+  var hppN=-netK("HPP"), opexN=-netK("Opex");      /* jadi angka beban positif */
+  var kotor=pend-hppN, operasi=kotor-opexN;
+  var belum=masukK("Belum terklasifikasi")-keluarK("Belum terklasifikasi");
+  var rHpp=katBersih("HPP"), rOpx=katBersih("Opex");
+  var gaji=0, sewa=0;
+  rOpx.forEach(function(p){ if(p[0].indexOf("Gaji")===0) gaji+=p[1]; if(p[0]==="Sewa") sewa+=p[1]; });
+  var pGaji=pct(gaji,pend), pSewa=pct(sewa,pend);
+
+  var baris=[barisLap("Pendapatan (penerimaan kas)",pend,pend,true)];
+  rHpp.forEach(function(p){ baris.push(barisLap(p[0],-p[1],pend,false,true)); });
+  baris.push(barisLap("Harga pokok",-hppN,pend,true));
+  baris.push(barisLap("LABA KOTOR",kotor,pend,true));
+  rOpx.forEach(function(p){ baris.push(barisLap(p[0],-p[1],pend,false,true)); });
+  baris.push(barisLap("Beban operasional",-opexN,pend,true));
+
+  var bl=bulanAdaK().filter(cocok);
+  var perBulan=bl.map(function(ym){
+    var t=netBulan(ym,"Penerimaan"), h=-netBulan(ym,"HPP"), o=-netBulan(ym,"Opex");
+    return [labelYm(ym), rp(t), rp(-h), rp(t-h), rp(-o), '<b>'+rp(t-h-o)+'</b>', pct(t-h-o,t)+"%"];
+  });
+
+  return '<div class="kpis">'
+    + kpi("Pendapatan", rp(pend), "penerimaan kas operasional")
+    + kpi("Laba kotor", rp(kotor), pct(kotor,pend)+"% dari pendapatan")
+    + kpi("Beban operasional", rp(opexN), pct(opexN,pend)+"% dari pendapatan")
+    + kpi("Laba operasional", rp(operasi), pct(operasi,pend)+"% margin", operasi<0?"bad":"good")
+    + kpi("Gaji", rp(gaji), pGaji+"% dari pendapatan · patokan ≤15%", pGaji>15?"bad":"good")
+    + kpi("Sewa", rp(sewa), pSewa+"% dari pendapatan · patokan ≤15%", pSewa>15?"bad":"good")
+    + '</div>'
+    + '<div class="panel"><h3>Laba rugi · basis kas</h3>'
+    + '<p class="sub">Disusun dari uang yang benar-benar masuk dan keluar pada periode terpilih, bukan dari pengakuan pendapatan dan beban. Angkanya tidak sama dengan laba akuntansi.</p>'
+    + tabel([{t:"Pos"},{t:"Nilai",n:1},{t:"% pendapatan",n:1}], baris,
+            ["LABA OPERASIONAL", rp(operasi), pct(operasi,pend)+"%"])
+    + '</div>'
+    + '<div class="panel"><h3>Per bulan</h3><p class="sub">Pendapatan dikurangi harga pokok dan beban operasional.</p>'
+    + tabel([{t:"Bulan"},{t:"Pendapatan",n:1},{t:"Harga pokok",n:1},{t:"Laba kotor",n:1},
+             {t:"Beban operasional",n:1},{t:"Laba operasional",n:1},{t:"Margin",n:1}], perBulan)
+    + '</div>'
+    + '<div class="panel"><h3>Yang belum masuk hitungan</h3>'
+    + (Math.abs(belum)>0.0001
+        ? temuan("crit","Rp "+fmt(Math.abs(belum))+" ribu belum terklasifikasi",
+            "Transaksi yang belum punya kategori tidak ikut dihitung di laba rugi ini. Selama angkanya sebesar itu, laba di atas masih bisa bergeser. Rapikan di halaman Peta Klasifikasi.")
+        : temuan("info","Semua transaksi sudah berkategori","Tidak ada nilai yang tertinggal di luar hitungan."))
+    + temuan("info","Yang tidak ada di sini",
+        "Penyusutan, persediaan, piutang, dan utang belum ada datanya — jadi tidak ada beban non-kas di laporan ini, dan penjualan yang belum dibayar belum diakui sebagai pendapatan.")
+    + '</div>';
+}
+
+function pArusKas(){
+  var terima=netK("Penerimaan"), hpp=netK("HPP"), opex=netK("Opex");
+  var operasi=terima+hpp+opex;
+  var inv=netK("Investasi"), dana=netK("Pendanaan");
+  var trf=netK("Transfer internal");
+  var belum=masukK("Belum terklasifikasi")-keluarK("Belum terklasifikasi");
+  var bersih=operasi+inv+dana;
+
+  var baris=[
+    barisLap("Penerimaan dari pelanggan",terima,0,false,true),
+    barisLap("Pembayaran harga pokok",hpp,0,false,true),
+    barisLap("Pembayaran beban operasional",opex,0,false,true),
+    barisLap("Arus kas dari aktivitas operasi",operasi,0,true),
+    barisLap("Arus kas dari aktivitas investasi",inv,0,true),
+    barisLap("Arus kas dari aktivitas pendanaan",dana,0,true)
+  ];
+
+  var bl=bulanAdaK().filter(cocok);
+  var perBulan=bl.map(function(ym){
+    var o=netBulan(ym,"Penerimaan")+netBulan(ym,"HPP")+netBulan(ym,"Opex");
+    var i=netBulan(ym,"Investasi"), d=netBulan(ym,"Pendanaan");
+    return [labelYm(ym), rp(o), rp(i), rp(d), '<b>'+rp(o+i+d)+'</b>'];
+  });
+
+  return '<div class="kpis">'
+    + kpi("Arus kas operasi", rp(operasi), operasi<0?"kas berkurang":"kas bertambah", operasi<0?"bad":"good")
+    + kpi("Arus kas investasi", rp(inv), "aset, renovasi, peralatan")
+    + kpi("Arus kas pendanaan", rp(dana), "pinjaman, setoran, tarikan modal")
+    + kpi("Kenaikan kas bersih", rp(bersih), "sebelum yang belum terklasifikasi", bersih<0?"bad":"good")
+    + kpi("Belum terklasifikasi", rp(belum), "belum bisa ditempatkan", Math.abs(belum)>0.0001?"warn":"")
+    + '</div>'
+    + '<div class="panel"><h3>Laporan arus kas · basis kas</h3>'
+    + '<p class="sub">Tiga aktivitas yang lazim: operasi, investasi, pendanaan. Transfer antar rekening sendiri dikeluarkan supaya uang yang cuma berpindah tempat tidak terhitung dua kali.</p>'
+    + tabel([{t:"Aktivitas"},{t:"Nilai",n:1}],
+            baris.map(function(r){ return r.slice(0,2); }),
+            ["KENAIKAN (PENURUNAN) KAS BERSIH", rp(bersih)])
+    + '</div>'
+    + '<div class="panel"><h3>Per bulan</h3><p class="sub">Arus kas tiap bulan menurut aktivitasnya.</p>'
+    + tabel([{t:"Bulan"},{t:"Operasi",n:1},{t:"Investasi",n:1},{t:"Pendanaan",n:1},{t:"Kas bersih",n:1}], perBulan)
+    + '</div>'
+    + '<div class="panel"><h3>Catatan penyusun</h3>'
+    + (Math.abs(belum)>0.0001
+        ? temuan("crit","Rp "+fmt(Math.abs(belum))+" ribu di luar tiga aktivitas",
+            "Nilai sebesar ini belum punya kategori, jadi belum bisa ditempatkan sebagai operasi, investasi, atau pendanaan. Kas bersih di atas belum memperhitungkannya; termasuk yang belum terklasifikasi, perubahan kasnya "+rp(bersih+belum)+".")
+        : temuan("info","Semua transaksi sudah berkategori","Tidak ada nilai di luar tiga aktivitas."))
+    + temuan("info","Transfer internal "+rp(trf),
+        "Pemindahan antar rekening sendiri. Nilai bersihnya semestinya mendekati nol; kalau jauh dari nol, ada sisi transfer yang belum tercatat.")
+    + temuan("info","Saldo awal dan akhir belum disajikan",
+        "Saldo per rekening ada di halaman Rekening &amp; Saldo. Untuk menyajikannya di sini sebagai saldo awal dan akhir periode, sumbernya perlu memuat saldo pembukaan tiap rekening.")
+    + '</div>';
 }
 
 
@@ -4439,6 +4582,93 @@ async function unduhRapor360(btn){
   }
 }
 
+
+var ANOM=null;                  /* baris anomali, tanpa baris judul */
+var ANOM_JENIS={
+  status_kosong:["Status marketplace kosong / ???","crit"],
+  done_belum_kirim:["Status done tapi pengiriman belum","crit"],
+  lewat_deadline:["Lewat deadline kirim","warn"]
+};
+function anomBaris(j){ return (ANOM||[]).filter(function(r){ return r[0]===j; }); }
+
+/* Excel ditulis sebagai SpreadsheetML 2003: satu berkas XML, tanpa pustaka
+   tambahan, dibuka Excel maupun Google Sheets apa adanya. CSV sengaja tidak
+   dipakai — pemisah titik koma dan angka berkoma sering berantakan di Excel
+   berlokal Indonesia, dan kolom isian tidak bisa diberi lebar. */
+function xlsEsc(s){ return String(s==null?"":s).replace(/[&<>]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
+function selXls(v,tipe){
+  if(tipe==="Number") return '<Cell ss:StyleID="num"><Data ss:Type="Number">'+(Number(v)||0)+'</Data></Cell>';
+  return '<Cell><Data ss:Type="String">'+xlsEsc(v)+'</Data></Cell>';
+}
+function bikinXLS(judulSheet, kolom, baris, catatan){
+  var lebar=kolom.map(function(k){ return '<Column ss:Width="'+(k.w||110)+'"/>'; }).join("");
+  var kep='<Row ss:StyleID="head">'+kolom.map(function(k){ return '<Cell ss:StyleID="head"><Data ss:Type="String">'+xlsEsc(k.t)+'</Data></Cell>'; }).join("")+'</Row>';
+  var isi=baris.map(function(r){
+    return '<Row>'+kolom.map(function(k,i){ return selXls(r[i], k.n?"Number":"String"); }).join("")+'</Row>';
+  }).join("");
+  var cat=catatan? '<Row/><Row><Cell><Data ss:Type="String">'+xlsEsc(catatan)+'</Data></Cell></Row>' : "";
+  return '<?xml version="1.0"?>\n<?mso-application progid="Excel.Sheet"?>\n'
+    + '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">'
+    + '<Styles><Style ss:ID="head"><Font ss:Bold="1"/><Interior ss:Color="#F3DDE4" ss:Pattern="Solid"/></Style>'
+    + '<Style ss:ID="num"><NumberFormat ss:Format="#,##0"/></Style></Styles>'
+    + '<Worksheet ss:Name="'+xlsEsc(judulSheet).slice(0,28)+'"><Table>'+lebar+kep+isi+cat
+    + '</Table><WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel"><FreezePanes/><SplitHorizontal>1</SplitHorizontal><TopRowBottomPane>1</TopRowBottomPane></WorksheetOptions></Worksheet></Workbook>';
+}
+async function unduhKlarifikasi(jenis){
+  var rows=anomBaris(jenis), nm=(ANOM_JENIS[jenis]||[jenis])[0];
+  var kolom=[{t:"No pesanan",w:150},{t:"Tanggal order",w:95},{t:"Platform",w:80},{t:"No resi",w:140},
+    {t:"Ekspedisi",w:110},{t:"Deadline",w:85},{t:"Telat (hari)",w:80,n:1},{t:"Item",w:50,n:1},
+    {t:"Penjelasan",w:220},{t:"Tindakan",w:180},{t:"PIC",w:100},{t:"Tanggal selesai",w:100}];
+  var isi=rows.map(function(r){ return [r[1],r[2],r[3],r[4],r[5],r[6],r[7],r[9],"","","",""]; });
+  var cat="Temuan: "+nm+" · "+isi.length+" pesanan · diambil "+new Date().toLocaleString("id-ID")
+        +". Isi empat kolom terakhir, lalu kirim balik berkas ini.";
+  var teks=bikinXLS(nm, kolom, isi, cat);
+  var nama="klarifikasi-"+jenis+"-"+new Date().toISOString().slice(0,10)+".xls";
+  var dl=null; try { dl = await claude.use("downloads"); } catch(e){ dl=null; }
+  if(dl){ try { await dl.save({filename:nama, data:teks}); return; } catch(e){} }
+  var a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([teks],{type:"application/vnd.ms-excel"}));
+  a.download=nama; a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); },2000);
+}
+
+function panelAnomali(){
+  if(!ANOM) return '<div class="panel"><h3>Form klarifikasi</h3>'
+    + '<div class="note">Daftar barisnya belum tersedia. Jalankan <b>buildAnomali()</b> di Apps Script sekali, lalu pasang triggernya.</div></div>';
+  var ada=Object.keys(ANOM_JENIS).filter(function(j){ return anomBaris(j).length; });
+  if(!ada.length) return '<div class="panel"><h3>Form klarifikasi</h3>'
+    + '<div class="note">Tidak ada baris bermasalah yang perlu diklarifikasi.</div></div>';
+  return '<div class="panel"><h3>Form klarifikasi</h3>'
+    + '<p class="sub">Tiap berkas berisi daftar pesanannya satu per satu, plus kolom kosong Penjelasan, Tindakan, PIC, dan Tanggal selesai. Kirim ke admin, minta diisi, lalu perbaiki di sumbernya.</p>'
+    + tabel([{t:"Temuan"},{t:"Pesanan",n:1},{t:"Paling lama telat",n:1},{t:"Form"}],
+        ada.map(function(j){
+          var rows=anomBaris(j), maks=0;
+          rows.forEach(function(r){ if((+r[7]||0)>maks) maks=+r[7]||0; });
+          var d=ANOM_JENIS[j];
+          return ['<span class="pill '+(d[1]==="crit"?"p-crit":"p-warn")+'">'+(d[1]==="crit"?"Kritis":"Perhatian")+'</span> '+esc(d[0]),
+            fmt(rows.length), maks? fmt(maks)+" hari" : "—",
+            '<button class="anom-unduh" data-j="'+j+'" type="button">Unduh Excel</button>'];
+        }))
+    + '<div class="note" style="margin-top:10px">Daftar ini mengikuti tabel antrian — paling telat lebih dulu, dibatasi 5.000 baris. Anomali settlement tidak ada di sini karena dihitung saat memindai sumber.</div>'
+    + '</div>';
+}
+
+/* Spanduk di halaman Ringkasan: muncul kalau temuan kritis bertambah sejak
+   terakhir kali orang ini membukanya. Patokannya disimpan di browser
+   masing-masing — ini soal "aku sudah lihat atau belum", bukan data perusahaan. */
+function spandukAnomali(){
+  var n=(ANOM? anomBaris("status_kosong").length+anomBaris("done_belum_kirim").length : 0);
+  if(!n) return "";
+  var lalu=null;
+  try { lalu=parseInt(localStorage.getItem("floral-anom")||"",10); } catch(e){}
+  try { localStorage.setItem("floral-anom", String(n)); } catch(e){}
+  var naik=(isFinite(lalu) && n>lalu)? (n-lalu) : 0;
+  return '<div class="tema-basi tema-anom'+(naik?' gawat':'')+'" role="status">'
+    + '<b>'+(naik? fmt(naik)+" temuan kritis baru" : fmt(n)+" pesanan perlu diklarifikasi")+'</b>'
+    + '<span>'+(naik? "Bertambah sejak terakhir kamu buka halaman ini. " : "")
+    + 'Status kosong dan status done yang belum terkirim membuat antrian tidak bisa dipastikan. '
+    + 'Daftar dan form klarifikasinya ada di halaman Kualitas Data.</span></div>';
+}
+
 /* Modul Produksi → Pengiriman.
    Mesin hitungnya diambil apa adanya dari artifact "Produksi → Pengiriman
    Floral.id"; yang diganti hanya tiga sambungan: sumber data (dari jembatan
@@ -4891,9 +5121,9 @@ return {
 };
 })();
 
-var GAMBAR={ringkasan:pRingkasan, jual:pJual, antrian:pAntrian, retur:pRetur, beban:pBeban, data:pData, kas:pKas, terima:pTerima, biaya:pBiaya, rekening:pRekening, peta:pPeta, transaksi:pTransaksi, event:pEvent, eo:pEo, kurva:pKurva, daftarev:pDaftarEvent, hariev:pHariEvent, dataev:pDataEvent, sos:pSosmed, konten:pKonten, datasos:pDataSos, hr:pHr, tim:pTim, rapor:pRapor, datahr:pDataHr, prd:prdG("prd"), prdcmt:prdG("prdcmt"), prdsteam:prdG("prdsteam"), prdstok:prdG("prdstok"), prdorder:prdG("prdorder"), prdlacak:prdG("prdlacak")};
-var JUDUL={ringkasan:"Ringkasan", jual:"Penjualan & Produk", antrian:"Antrian Kirim", retur:"Retur", beban:"Beban Harian", data:"Kualitas Data", kas:"Ringkasan Kas", terima:"Penerimaan", biaya:"Biaya", rekening:"Rekening & Saldo", peta:"Peta Klasifikasi", transaksi:"Transaksi", event:"Ringkasan Event", eo:"Penyelenggara & Kota", kurva:"Kurva Hari", daftarev:"Daftar Event", hariev:"Rincian Harian", dataev:"Kualitas Data Event", sos:"Ringkasan Sosmed", konten:"Corong & Interaksi", datasos:"Kualitas Data Sosmed", hr:"Progres 360", tim:"Komposisi Tim", rapor:"Rapor 360", datahr:"Kualitas Data HR", prd:"Ringkasan Produksi", prdcmt:"CMT", prdsteam:"Steamer", prdstok:"Stok Gudang & Bahan", prdorder:"Pesanan & Retur", prdlacak:"Lacak Kode"};
-var MODUL={ringkasan:"ops", jual:"ops", antrian:"ops", retur:"ops", beban:"ops", data:"ops", kas:"kas", terima:"kas", biaya:"kas", rekening:"kas", peta:"kas", transaksi:"kas", event:"event", eo:"event", kurva:"event", daftarev:"event", hariev:"event", dataev:"event", sos:"sos", konten:"sos", datasos:"sos", hr:"hr", tim:"hr", rapor:"hr", datahr:"hr", prd:"prd", prdcmt:"prd", prdsteam:"prd", prdstok:"prd", prdorder:"prd", prdlacak:"prd"};
+var GAMBAR={ringkasan:pRingkasan, jual:pJual, antrian:pAntrian, retur:pRetur, beban:pBeban, data:pData, kas:pKas, lr:pLabaRugi, aruskas:pArusKas, terima:pTerima, biaya:pBiaya, rekening:pRekening, peta:pPeta, transaksi:pTransaksi, event:pEvent, eo:pEo, kurva:pKurva, daftarev:pDaftarEvent, hariev:pHariEvent, dataev:pDataEvent, sos:pSosmed, konten:pKonten, datasos:pDataSos, hr:pHr, tim:pTim, rapor:pRapor, datahr:pDataHr, prd:prdG("prd"), prdcmt:prdG("prdcmt"), prdsteam:prdG("prdsteam"), prdstok:prdG("prdstok"), prdorder:prdG("prdorder"), prdlacak:prdG("prdlacak")};
+var JUDUL={ringkasan:"Ringkasan", jual:"Penjualan & Produk", antrian:"Antrian Kirim", retur:"Retur", beban:"Beban Harian", data:"Kualitas Data", kas:"Ringkasan Kas", lr:"Laba Rugi", aruskas:"Laporan Arus Kas", terima:"Penerimaan", biaya:"Biaya", rekening:"Rekening & Saldo", peta:"Peta Klasifikasi", transaksi:"Transaksi", event:"Ringkasan Event", eo:"Penyelenggara & Kota", kurva:"Kurva Hari", daftarev:"Daftar Event", hariev:"Rincian Harian", dataev:"Kualitas Data Event", sos:"Ringkasan Sosmed", konten:"Corong & Interaksi", datasos:"Kualitas Data Sosmed", hr:"Progres 360", tim:"Komposisi Tim", rapor:"Rapor 360", datahr:"Kualitas Data HR", prd:"Ringkasan Produksi", prdcmt:"CMT", prdsteam:"Steamer", prdstok:"Stok Gudang & Bahan", prdorder:"Pesanan & Retur", prdlacak:"Lacak Kode"};
+var MODUL={ringkasan:"ops", jual:"ops", antrian:"ops", retur:"ops", beban:"ops", data:"ops", kas:"kas", lr:"kas", aruskas:"kas", terima:"kas", biaya:"kas", rekening:"kas", peta:"kas", transaksi:"kas", event:"event", eo:"event", kurva:"event", daftarev:"event", hariev:"event", dataev:"event", sos:"sos", konten:"sos", datasos:"sos", hr:"hr", tim:"hr", rapor:"hr", datahr:"hr", prd:"prd", prdcmt:"prd", prdsteam:"prd", prdstok:"prd", prdorder:"prd", prdlacak:"prd"};
 
 /* ---------- kerangka ---------- */
 function buildFilters(){
@@ -5014,6 +5244,7 @@ document.addEventListener("click",function(ev){
   if(sn){ var ka=sn.dataset.a, kc=sn.dataset.c;
     BUKA360=(BUKA360&&BUKA360.a===ka&&BUKA360.c===kc)? null : {a:ka,c:kc};
     render(); return; }
+  var an=ev.target.closest(".anom-unduh"); if(an){ unduhKlarifikasi(an.dataset.j); return; }
   var u=ev.target.closest(".det-unduh"); if(u){ unduhCSV(u.dataset.id); return; }
   var p=ev.target.closest(".det-prev"); if(p){ var d=DET[p.dataset.id]; if(d.hal>0){ d.hal--; gambarDetail(p.dataset.id);} return; }
   var n=ev.target.closest(".det-next"); if(n){ var d2=DET[n.dataset.id]; d2.hal++; gambarDetail(n.dataset.id); return; }
@@ -5148,6 +5379,14 @@ function onFeed(result){
       var m=pesanError(c); fatal(m[0],m[1]); setLive("off","tidak terhubung");
     }
   },{cache:{staleTime:120000,gcTime:900000}, refetchInterval:300000});
+
+  mcp.watchTool("Google Sheets","get_values",{spreadsheetId:SHEET, range:"DETAIL_ANOMALI!A1:J5002"},function(ev){
+    if(ev.type==="data"){
+      var v=ev.result&&ev.result.payload&&ev.result.payload.values;
+      ANOM=(v&&v.length>1)? v.slice(1) : [];
+      if(PAGE==="data"||PAGE==="ringkasan") render();
+    }
+  },{cache:{staleTime:300000,gcTime:3600000}, refetchInterval:900000});
 
   var PRD_ID="1T-bMlsMg52nN_0v3LD4gOkXM119XR3izXODCXJyO0Yw";
   var PRD_SRC={ par:"MASTER!A5:B8", cmt:"MASTER!K5:R54", stm:"MASTER!T5:Z54",
