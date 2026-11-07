@@ -3063,6 +3063,10 @@ function pLabaRugi(){
     var t=netBulan(ym,"Penerimaan"), h=-netBulan(ym,"HPP"), o=-netBulan(ym,"Opex");
     return [labelYm(ym), rp(t), rp(-h), rp(t-h), rp(-o), '<b>'+rp(t-h-o)+'</b>', pct(t-h-o,t)+"%"];
   });
+  var tren=bl.map(function(ym){
+    return [labelYm(ym), netBulan(ym,"Penerimaan")+netBulan(ym,"HPP")+netBulan(ym,"Opex")];
+  });
+  var trenPend=bl.map(function(ym){ return [labelYm(ym), netBulan(ym,"Penerimaan")]; });
 
   return '<div class="kpis">'
     + kpi("Pendapatan", rp(pend), "penerimaan kas operasional")
@@ -3077,7 +3081,11 @@ function pLabaRugi(){
     + tabel([{t:"Pos"},{t:"Nilai",n:1},{t:"% pendapatan",n:1}], baris,
             ["LABA OPERASIONAL", rp(operasi), pct(operasi,pend)+"%"])
     + '</div>'
-    + '<div class="panel"><h3>Per bulan</h3><p class="sub">Pendapatan dikurangi harga pokok dan beban operasional.</p>'
+    + '<div class="panel"><h3>Laba operasional per bulan</h3><p class="sub">Pendapatan dikurangi harga pokok dan beban operasional. Batang merah berarti bulan itu rugi.</p>'
+    + (tren.length? bar(tren,true) : '<div class="note">Tidak ada data.</div>') + '</div>'
+    + '<div class="panel"><h3>Pendapatan vs beban per bulan</h3><p class="sub">Tiga pos utama berdampingan.</p>'
+    + (trenPend.length? bar(trenPend,true) : '<div class="note">Tidak ada data.</div>') + '</div>'
+    + '<div class="panel"><h3>Rincian per bulan</h3><p class="sub">Angka penyusunnya.</p>'
     + tabel([{t:"Bulan"},{t:"Pendapatan",n:1},{t:"Harga pokok",n:1},{t:"Laba kotor",n:1},
              {t:"Beban operasional",n:1},{t:"Laba operasional",n:1},{t:"Margin",n:1}], perBulan)
     + '</div>'
@@ -3114,6 +3122,13 @@ function pArusKas(){
     var i=netBulan(ym,"Investasi"), d=netBulan(ym,"Pendanaan");
     return [labelYm(ym), rp(o), rp(i), rp(d), '<b>'+rp(o+i+d)+'</b>'];
   });
+  var trenOp=bl.map(function(ym){
+    return [labelYm(ym), netBulan(ym,"Penerimaan")+netBulan(ym,"HPP")+netBulan(ym,"Opex")];
+  });
+  var trenBersih=bl.map(function(ym){
+    return [labelYm(ym), netBulan(ym,"Penerimaan")+netBulan(ym,"HPP")+netBulan(ym,"Opex")
+            +netBulan(ym,"Investasi")+netBulan(ym,"Pendanaan")];
+  });
 
   return '<div class="kpis">'
     + kpi("Arus kas operasi", rp(operasi), operasi<0?"kas berkurang":"kas bertambah", operasi<0?"bad":"good")
@@ -3128,7 +3143,11 @@ function pArusKas(){
             baris.map(function(r){ return r.slice(0,2); }),
             ["KENAIKAN (PENURUNAN) KAS BERSIH", rp(bersih)])
     + '</div>'
-    + '<div class="panel"><h3>Per bulan</h3><p class="sub">Arus kas tiap bulan menurut aktivitasnya.</p>'
+    + '<div class="panel"><h3>Arus kas operasi per bulan</h3><p class="sub">Batang merah berarti bulan itu kas operasional berkurang.</p>'
+    + (trenOp.length? bar(trenOp,true) : '<div class="note">Tidak ada data.</div>') + '</div>'
+    + '<div class="panel"><h3>Kas bersih per bulan</h3><p class="sub">Operasi + investasi + pendanaan.</p>'
+    + (trenBersih.length? bar(trenBersih,true) : '<div class="note">Tidak ada data.</div>') + '</div>'
+    + '<div class="panel"><h3>Rincian per bulan</h3><p class="sub">Arus kas tiap bulan menurut aktivitasnya.</p>'
     + tabel([{t:"Bulan"},{t:"Operasi",n:1},{t:"Investasi",n:1},{t:"Pendanaan",n:1},{t:"Kas bersih",n:1}], perBulan)
     + '</div>'
     + '<div class="panel"><h3>Catatan penyusun</h3>'
@@ -4587,7 +4606,12 @@ var ANOM=null;                  /* baris anomali, tanpa baris judul */
 var ANOM_JENIS={
   status_kosong:["Status marketplace kosong / ???","crit"],
   done_belum_kirim:["Status done tapi pengiriman belum","crit"],
-  lewat_deadline:["Lewat deadline kirim","warn"]
+  retur_tercatat_terkirim:["Retur tapi tercatat terkirim","crit"],
+  lewat_deadline:["Lewat deadline kirim","warn"],
+  deadline_invalid:["Deadline kirim tidak valid","warn"],
+  settle_nol:["Settlement nol atau kosong","warn"],
+  settle_negatif:["Settlement negatif","info"],
+  settle_lebih:["Settlement melebihi nilai order","info"]
 };
 function anomBaris(j){ return (ANOM||[]).filter(function(r){ return r[0]===j; }); }
 
@@ -4618,8 +4642,9 @@ async function unduhKlarifikasi(jenis){
   var rows=anomBaris(jenis), nm=(ANOM_JENIS[jenis]||[jenis])[0];
   var kolom=[{t:"No pesanan",w:150},{t:"Tanggal order",w:95},{t:"Platform",w:80},{t:"No resi",w:140},
     {t:"Ekspedisi",w:110},{t:"Deadline",w:85},{t:"Telat (hari)",w:80,n:1},{t:"Item",w:50,n:1},
+    {t:"Nilai (Rp)",w:110,n:1},{t:"Settlement (Rp)",w:120,n:1},
     {t:"Penjelasan",w:220},{t:"Tindakan",w:180},{t:"PIC",w:100},{t:"Tanggal selesai",w:100}];
-  var isi=rows.map(function(r){ return [r[1],r[2],r[3],r[4],r[5],r[6],r[7],r[9],"","","",""]; });
+  var isi=rows.map(function(r){ return [r[1],r[2],r[3],r[4],r[5],r[6],r[7],r[9],r[10],r[11],"","","",""]; });
   var cat="Temuan: "+nm+" · "+isi.length+" pesanan · diambil "+new Date().toLocaleString("id-ID")
         +". Isi empat kolom terakhir, lalu kirim balik berkas ini.";
   var teks=bikinXLS(nm, kolom, isi, cat);
@@ -4648,7 +4673,7 @@ function panelAnomali(){
             fmt(rows.length), maks? fmt(maks)+" hari" : "—",
             '<button class="anom-unduh" data-j="'+j+'" type="button">Unduh Excel</button>'];
         }))
-    + '<div class="note" style="margin-top:10px">Daftar ini mengikuti tabel antrian — paling telat lebih dulu, dibatasi 5.000 baris. Anomali settlement tidak ada di sini karena dihitung saat memindai sumber.</div>'
+    + '<div class="note" style="margin-top:10px">Tiap temuan dibatasi 1.500 baris, diambil saat feed dihitung ulang — jadi satu tunggakan besar tidak menghabiskan jatah temuan lain.</div>'
     + '</div>';
 }
 
